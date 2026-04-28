@@ -1,0 +1,18 @@
+[wsl2]
+# 設定你想要分配給 WSL 的記憶體上限（例如 16GB）
+memory=16GB
+
+# 設定虛擬交換記憶體的大小（選填，通常跟上面一樣或一半即可）
+swap=8GB
+
+# 限制 WSL 使用的 CPU 核心數（選填）
+processors=8
+
+# 這裡設定網路模式，讓 WSL 跟 Windows 像雙胞胎一樣共享網路
+networkingMode=mirrored
+
+# 讓 WSL 自動同步 Windows 的代理伺服器設定
+autoProxy=true
+
+# 允許 WSL 內的服務綁定到 Windows 的所有 IP
+dnsTunneling=true

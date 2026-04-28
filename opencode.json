@@ -1,0 +1,86 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // "model": "google/gemini-3-flash-preview",
+  // "small_model": "google/gemini-3-flash-preview",
+  // "provider": {
+  //   "google": {
+  //     "models": {
+  //       "gemini-2.5-flash-lite": {
+  //         "variants": {
+  //           "thinking": {
+  //             "disabled": true
+  //           }
+  //         }
+  //       }
+  //     }
+  //   },
+  //   "ollama": {
+  //     "npm": "@ai-sdk/openai-compatible",
+  //     "name": "Ollama (local)",
+  //     "options": {
+  //       "baseURL": "http://localhost:11434/v1"
+  //     },
+  //     "models": {
+  //       "qwen-9b-reason:latest": {
+  //         "name": "Qwen 9B Reason"
+  //       },
+  //       "qwen2.5:14b": {
+  //         "name": "Qwen 2.5 14B"
+  //       },
+  //       "codellama:latest": {
+  //         "name": "CodeLlama"
+  //       },
+  //       "deepseek-v3.1:671b-cloud": {
+  //         "name": "DeepSeek Cloud"
+  //       }
+  //     }
+  //   }
+  // },
+  "mcp": {
+    "context7": {
+      "enabled": true,
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "sequential-thinking": {
+      "enabled": true,
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "figma": {
+      "enabled": true,
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "figma-developer-mcp",
+        "--figma-api-key={FIGMA_API_KEY}",
+        "--stdio"
+      ]
+    },
+    "chrome-devtools": {
+      "enabled": true,
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ],
+      "environment": {
+        "CHROME_DEVTOOLS_MCP_HOST": "localhost",
+        "CHROME_DEVTOOLS_MCP_PORT": "9222"
+      }
+    }
+  },
+  "plugin": [
+    "opencode-wakatime"
+  ]
+}
