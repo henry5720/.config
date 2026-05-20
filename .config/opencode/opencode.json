@@ -1,41 +1,264 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  // "model": "google/gemini-3-flash-preview",
-  // "small_model": "google/gemini-3-flash-preview",
-  // "provider": {
-  //   "google": {
-  //     "models": {
-  //       "gemini-2.5-flash-lite": {
-  //         "variants": {
-  //           "thinking": {
-  //             "disabled": true
-  //           }
-  //         }
-  //       }
-  //     }
-  //   },
-  //   "ollama": {
-  //     "npm": "@ai-sdk/openai-compatible",
-  //     "name": "Ollama (local)",
-  //     "options": {
-  //       "baseURL": "http://localhost:11434/v1"
-  //     },
-  //     "models": {
-  //       "qwen-9b-reason:latest": {
-  //         "name": "Qwen 9B Reason"
-  //       },
-  //       "qwen2.5:14b": {
-  //         "name": "Qwen 2.5 14B"
-  //       },
-  //       "codellama:latest": {
-  //         "name": "CodeLlama"
-  //       },
-  //       "deepseek-v3.1:671b-cloud": {
-  //         "name": "DeepSeek Cloud"
-  //       }
-  //     }
-  //   }
-  // },
+  "model": "teamsync-gemini/gemini-3.1-pro-preview",
+  "small_model": "teamsync-gemini/gemini-3-flash-preview",
+  "provider": {
+    "teamsync-gemini": {
+      "id": "teamsync-gemini",
+      "name": "TeamSync Gemini",
+      "api": "openai",
+      "env": [
+        "TEAMSYNC_API_KEY",
+        "TEAMSYNC_GEMINI_BASE_URL"
+      ],
+      "options": {
+        "apiKey": "{env:TEAMSYNC_API_KEY}",
+        "baseURL": "{env:TEAMSYNC_GEMINI_BASE_URL}",
+        "setCacheKey": true,
+        "timeout": 300000
+      },
+      "models": {
+        "gemini-3.1-pro-preview": {
+          "id": "gemini-3.1-pro-preview",
+          "name": "Gemini 3.1 Pro Preview",
+          "family": "gemini",
+          "status": "active",
+          "cost": {
+            "input": 1.9,
+            "output": 11.4
+          }
+        },
+        "gemini-3-flash-preview": {
+          "id": "gemini-3-flash-preview",
+          "name": "Gemini 3 Flash Preview",
+          "family": "gemini",
+          "status": "active",
+          "cost": {
+            "input": 0.475,
+            "output": 2.85
+          }
+        },
+        "gemini-3.1-flash-lite": {
+          "id": "gemini-3.1-flash-lite",
+          "name": "Gemini 3.1 Flash Lite",
+          "family": "gemini",
+          "status": "active",
+          "cost": {
+            "input": 0.2375,
+            "output": 1.425
+          }
+        },
+        "gemini-2.5-pro": {
+          "id": "gemini-2.5-pro",
+          "name": "Gemini 2.5 Pro",
+          "family": "gemini",
+          "status": "active",
+          "cost": {
+            "input": 1.1875,
+            "output": 9.5
+          }
+        },
+        "gemini-2.5-flash": {
+          "id": "gemini-2.5-flash",
+          "name": "Gemini 2.5 Flash",
+          "family": "gemini",
+          "status": "active",
+          "cost": {
+            "input": 0.285,
+            "output": 2.375
+          }
+        },
+        "gemini-2.5-flash-lite": {
+          "id": "gemini-2.5-flash-lite",
+          "name": "Gemini 2.5 Flash Lite",
+          "family": "gemini",
+          "status": "active",
+          "cost": {
+            "input": 0.095,
+            "output": 0.38
+          }
+        }
+      }
+    },
+    "teamsync-claude": {
+      "id": "teamsync-claude",
+      "name": "TeamSync Claude",
+      "api": "openai",
+      "env": [
+        "TEAMSYNC_API_KEY",
+        "TEAMSYNC_CLAUDE_BASE_URL"
+      ],
+      "options": {
+        "apiKey": "{env:TEAMSYNC_API_KEY}",
+        "baseURL": "{env:TEAMSYNC_CLAUDE_BASE_URL}",
+        "timeout": 300000
+      },
+      "models": {
+        "claude-opus-4-7": {
+          "id": "claude-opus-4-7",
+          "name": "Claude Opus 4.7",
+          "family": "claude",
+          "status": "active",
+          "cost": {
+            "input": 5,
+            "output": 25
+          }
+        },
+        "claude-sonnet-4-6": {
+          "id": "claude-sonnet-4-6",
+          "name": "Claude Sonnet 4.6",
+          "family": "claude",
+          "status": "active",
+          "cost": {
+            "input": 3,
+            "output": 15
+          }
+        },
+        "claude-haiku-4-5": {
+          "id": "claude-haiku-4-5",
+          "name": "Claude Haiku 4.5",
+          "family": "claude",
+          "status": "active",
+          "cost": {
+            "input": 1,
+            "output": 5
+          }
+        }
+      }
+    },
+    "teamsync-azure": {
+      "id": "teamsync-azure",
+      "name": "TeamSync Azure",
+      "api": "openai",
+      "env": [
+        "TEAMSYNC_API_KEY",
+        "TEAMSYNC_AZURE_BASE_URL"
+      ],
+      "options": {
+        "apiKey": "{env:TEAMSYNC_API_KEY}",
+        "baseURL": "{env:TEAMSYNC_AZURE_BASE_URL}",
+        "timeout": 300000
+      },
+      "models": {
+        "gpt-5.4": {
+          "id": "gpt-5.4",
+          "name": "GPT-5.4",
+          "family": "gpt",
+          "status": "active",
+          "cost": {
+            "input": 2.05,
+            "output": 12.3
+          }
+        },
+        "gpt-5.4-mini": {
+          "id": "gpt-5.4-mini",
+          "name": "GPT-5.4 Mini",
+          "family": "gpt",
+          "status": "active",
+          "cost": {
+            "input": 0.615,
+            "output": 3.69
+          }
+        },
+        "deepseek-v4-pro": {
+          "id": "deepseek-v4-pro",
+          "name": "DeepSeek V4 Pro",
+          "family": "deepseek",
+          "status": "active",
+          "cost": {
+            "input": 1.4268,
+            "output": 2.8536
+          }
+        },
+        "deepseek-v4-flash": {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash",
+          "family": "deepseek",
+          "status": "active",
+          "cost": {
+            "input": 0.1148,
+            "output": 0.2296
+          }
+        },
+        "gpt-5.4-nano": {
+          "id": "gpt-5.4-nano",
+          "name": "GPT-5.4 Nano",
+          "family": "gpt",
+          "status": "active",
+          "cost": {
+            "input": 0.164,
+            "output": 1.025
+          }
+        },
+        "kimi-k2.6": {
+          "id": "kimi-k2.6",
+          "name": "Kimi K2.6",
+          "family": "kimi",
+          "status": "active",
+          "cost": {
+            "input": 0.779,
+            "output": 3.28
+          }
+        }
+      }
+    },
+    "teamsync-embedding": {
+      "id": "teamsync-embedding",
+      "name": "TeamSync Embedding",
+      "api": "openai",
+      "env": [
+        "TEAMSYNC_API_KEY",
+        "TEAMSYNC_EMBEDDING_BASE_URL"
+      ],
+      "options": {
+        "apiKey": "{env:TEAMSYNC_API_KEY}",
+        "baseURL": "{env:TEAMSYNC_EMBEDDING_BASE_URL}",
+        "timeout": 300000
+      },
+      "models": {
+        "google/gemini-embedding-001/3072": {
+          "id": "google/gemini-embedding-001/3072",
+          "name": "Gemini Embedding 001",
+          "cost": {
+            "input": 0.1,
+            "output": 0
+          }
+        },
+        "openai/text-embedding-3-large/3072": {
+          "id": "openai/text-embedding-3-large/3072",
+          "name": "Text Embedding 3 Large",
+          "cost": {
+            "input": 0.13,
+            "output": 0
+          }
+        },
+        "google/gemini-embedding-2/3072": {
+          "id": "google/gemini-embedding-2/3072",
+          "name": "Gemini Embedding 2",
+          "cost": {
+            "input": 0.15,
+            "output": 0
+          }
+        },
+        "voyageai/voyage-3.5/1024": {
+          "id": "voyageai/voyage-3.5/1024",
+          "name": "Voyage 3.5",
+          "cost": {
+            "input": 0.06,
+            "output": 0
+          }
+        },
+        "voyageai/voyage-3.5-lite/1024": {
+          "id": "voyageai/voyage-3.5-lite/1024",
+          "name": "Voyage 3.5 Lite",
+          "cost": {
+            "input": 0.02,
+            "output": 0
+          }
+        }
+      }
+    }
+  },
   "mcp": {
     "context7": {
       "enabled": true,
@@ -55,17 +278,6 @@
         "@modelcontextprotocol/server-sequential-thinking"
       ]
     },
-    "figma": {
-      "enabled": true,
-      "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "figma-developer-mcp",
-        "--figma-api-key={FIGMA_API_KEY}",
-        "--stdio"
-      ]
-    },
     "chrome-devtools": {
       "enabled": true,
       "type": "local",
@@ -79,8 +291,22 @@
         "CHROME_DEVTOOLS_MCP_PORT": "9222"
       }
     }
+    // "figma": {
+    //   "enabled": true,
+    //   "type": "local",
+    //   "command": [
+    //     "npx",
+    //     "-y",
+    //     "figma-developer-mcp",
+    //     "--stdio"
+    //   ],
+    //   "environment": {
+    //     "FIGMA_API_KEY": "{env:FIGMA_API_KEY}"
+    //   }
+    // }
   },
   "plugin": [
-    "opencode-wakatime"
+    "opencode-wakatime",
+    "superpowers@git+https://github.com/obra/superpowers.git"
   ]
 }
