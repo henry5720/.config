@@ -52,15 +52,5 @@ source ~/.config/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 # ===============================================================
 # 6. 自定義別名 (Aliases)
 # ===============================================================
-alias vi='nvim'
-alias vim='nvim'
-alias n='nvim'
-alias g='git'
-alias lg='lazygit'
-alias ls='ls --color=auto'
-alias ll='ls -alF'
-alias la='ls -A'
-
-# AI Agents 快捷鍵 (如果需要的話)
-alias c='claude'
-alias oc='opencode'
+# alias c='claude'
+# alias oc='opencode'
