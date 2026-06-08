@@ -14,4 +14,4 @@ netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=3009
 netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=3000
 
 ## 清空全部
-netsh interface portproxy flush
+netsh interface portproxy reset
