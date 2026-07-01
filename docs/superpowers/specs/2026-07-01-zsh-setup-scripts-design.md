@@ -55,8 +55,16 @@ script/
    - powerlevel10k
    - zsh-autosuggestions
    - zsh-syntax-highlighting
-4. 部署 `.zshrc`:**symlink** `~/.zshrc` → repo 內的 `.zshrc`(已存在且非本 repo symlink 時先備份)。
+4. 部署 `.zshrc`:**symlink** `~/.zshrc` → repo 內的 `.zshrc`。若 `~/.zshrc` 已存在且不是指向本 repo 的 symlink,先備份成 `~/.zshrc.bak` 再建立連結(冪等:已是正確 symlink 則跳過)。
 5. `chsh -s $(which zsh)` 設預設 shell。
+
+### README
+
+更新 repo 的 README,說明:
+
+- 兩種安裝跑法:本機 `bash script/setup.sh`、`curl ... | bash` 一行流。
+- `.zshrc` 以 **symlink** 部署(`~/.zshrc` → `~/code/dotfiles/.zshrc`),及如何確認(`ls -la ~/.zshrc`)。
+- 反安裝:`rm ~/.zshrc && mv ~/.zshrc.bak ~/.zshrc`(還原備份)。
 
 ### install-tools.sh
 
@@ -114,6 +122,7 @@ command -v fastfetch &>/dev/null && fastfetch
 - **冪等**:所有安裝前先檢查是否已存在(沿用現有 `[ ! -d ]` 風格),重跑安全。
 - **目標平台**:WSL Ubuntu(apt)。
 - 有顏色輸出的 echo 提示(沿用現有風格)。
+- **部署方式決策**:採 symlink(主流 dotfiles 做法,`git pull` 即生效),而非 copy。代價是 repo 必須長期保留;以 README 說明部署與反安裝步驟來彌補「symlink 隱形、拆除方式」的疑慮。
 
 ## 驗收標準
 
@@ -122,4 +131,5 @@ command -v fastfetch &>/dev/null && fastfetch
 3. `bash script/setup.sh` 一條龍:基底 + 工具選單。
 4. 任一工具未裝時,開啟 zsh **不報任何 error**。
 5. 舊 `setup_linux.sh`、`install_tools.sh` 已刪除;xfce/tablet 腳本未被更動。
+6. README 已說明兩種跑法、symlink 部署與反安裝步驟。
 ```
