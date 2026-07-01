@@ -3,8 +3,8 @@ set -euo pipefail
 
 GREEN='\033[0;32m'; BLUE='\033[0;34m'; NC='\033[0m'
 
-# repo 根目錄(本腳本在 script/ 底下)
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# repo 根目錄(本腳本在 script/ubuntu/ 底下)
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ZSH_PLUGINS_DIR="$HOME/.config/zsh"
 
 echo -e "${BLUE}🚀 安裝基底環境 (zsh + 插件 + .zshrc)...${NC}"

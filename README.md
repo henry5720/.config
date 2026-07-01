@@ -13,7 +13,8 @@
 | `.config/nvim/` | 只有 `lua/config/options.lua` 一個片段(剪貼簿處理),需搭配既有的 LazyVim 安裝,**非完整 nvim 設定**。 |
 | `.config/opencode/` | [opencode](https://opencode.ai)(終端 AI coding agent)設定:模型供應商、MCP servers、外掛;`AGENTS.md` 為 persona/工作流指示。 |
 | `ai-agent/` | 給各家 AI 工具用的 persona / rules 文件(開發準則、Cursor rules、think-mode 等)。 |
-| `script/` | 安裝腳本:WSL 主線的 zsh 環境(`setup.sh` 等),以及 Termux 的 xfce/tablet 桌面腳本。 |
+| `script/ubuntu/` | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 |
+| `script/termux/` | Android/Termux 桌面環境腳本(xfce/tablet),與 Ubuntu 無關。 |
 | `wsl/` | Windows 主機側的 WSL2 設定(`.wslconfig`)與 portproxy 備忘,**手動使用、非由腳本部署**。 |
 | `docs/` | 設計與實作規劃文件(spec / plan)。詳細說明若有需要,放這裡。 |
 
@@ -23,11 +24,11 @@
 
 ```bash
 # 一鍵:基底 + 工具選單
-bash script/setup.sh
+bash script/ubuntu/setup.sh
 
 # 或分開跑
-bash script/install-base.sh    # 基底(強制):zsh/git/curl/vim + 插件 + .zshrc + 預設 shell
-bash script/install-tools.sh   # 工具(可選):編號多選 fastfetch / bottom / nvm
+bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + 插件 + .zshrc + 預設 shell
+bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / bottom / nvm
 ```
 
 工具選單:空格分隔多選(例 `1 3`),直接 Enter = 全裝。
@@ -71,7 +72,7 @@ rm ~/.zshrc && mv ~/.zshrc.bak ~/.zshrc
 ### ai-agent (`ai-agent/`)
 給各家 AI 工具貼用的 persona / rules 文件,非可執行程式:`ai-rules.md`(Cursor 風格 rules)、`AGENTS(think-mode)*.md`(「思維總監」對抗式 persona)。開發準則本身以 `.config/opencode/AGENTS.md` 為單一來源。
 
-### Termux 桌面腳本 (`script/startxfce_*.sh`、`set-up-tablet.sh`)
+### Termux 桌面腳本 (`script/termux/`)
 **與 WSL 無關**,是 Android/Termux 上的腳本:`set-up-tablet.sh` 首次安裝 XFCE/X11 GUI 堆疊;`startxfce_native.sh` 用軟體渲染直接跑 XFCE;`startxfce_proot.sh` 進 proot-distro Debian 跑 XFCE。
 
 ### wsl (`wsl/`)
@@ -88,7 +89,7 @@ Windows 主機側檔案,**不由本 repo 腳本部署**:`.wslconfig`(記憶體 1
 
 ## ⚠️ 機器特定 / fork 前需自行修改
 
-1. `script/startxfce_proot.sh` **寫死使用者名稱 `henry`**(`su - henry`)。
+1. `script/termux/startxfce_proot.sh` **寫死使用者名稱 `henry`**(`su - henry`)。
 2. tmux 的 agent 整合依賴**未附的私有 binary** `~/.config/agent-tracker/bin/agent` 及其 `~/.config/agent-tracker/`、`~/.cache/agent/` 狀態檔;缺了功能降級但不致命。
 3. `.config/opencode/opencode.json` 綁**私有 TeamSync 代理**,需 `TEAMSYNC_API_KEY` 與數個 `TEAMSYNC_*_BASE_URL` 環境變數,開箱無法直接使用。
 4. `ai-agent/ai-rules.md` 綁**特定技術棧**(React+TS+Vite、C#+Python+Node、SQL Server+PostgreSQL)。
