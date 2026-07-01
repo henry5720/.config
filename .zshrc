@@ -33,7 +33,8 @@ setopt HIST_IGNORE_SPACE      # 空格開頭不紀錄
 # ===============================================================
 # 4. 載入主題與個人化設定 (已搬移至 .config)
 # ===============================================================
-source ~/.config/zsh/powerlevel10k/powerlevel10k.zsh-theme
+[ -f ~/.config/zsh/powerlevel10k/powerlevel10k.zsh-theme ] \
+  && source ~/.config/zsh/powerlevel10k/powerlevel10k.zsh-theme
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # ===============================================================
@@ -44,10 +45,17 @@ zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' # 補全忽略大小寫
 
 # 自動建議
-source ~/.config/zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+[ -f ~/.config/zsh/zsh-autosuggestions/zsh-autosuggestions.zsh ] \
+  && source ~/.config/zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 # 語法高亮 (必須放最後)
-source ~/.config/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+[ -f ~/.config/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ] \
+  && source ~/.config/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# ===============================================================
+# 5.5 開場系統資訊 (只有裝了 fastfetch 才跑)
+# ===============================================================
+command -v fastfetch &>/dev/null && fastfetch
 
 # ===============================================================
 # 6. 自定義別名 (Aliases)
