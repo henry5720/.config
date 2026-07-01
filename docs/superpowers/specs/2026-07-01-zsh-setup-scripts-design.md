@@ -8,7 +8,7 @@
 
 - **純 zsh**:砍掉 Oh My Zsh,只維護一套與現有 `.zshrc` 一致的純 zsh 配置。
 - **分層安裝**:基底一律裝、工具自選。
-- **兩種跑法皆可**:本機 `bash script/setup.sh`,以及 `curl ... | bash` 一行流。
+- **clone 後可跑**:`git clone` 後 `bash script/setup.sh`(或分開跑各腳本)。註:`setup.sh` 靠 `BASH_SOURCE` 找同層腳本,無法用 `curl .../setup.sh | bash` 純管道執行;真要一行流需自帶「先 clone 再跑」的 bootstrap(本次不做)。互動輸入一律讀 `/dev/tty`,故即使腳本 stdin 被導向也能操作。
 - **解耦**:`.zshrc` 是版控的靜態產物,安裝腳本只 symlink、絕不 mutate 其內容。
 
 ## 背景與動機
@@ -62,7 +62,7 @@ script/
 
 更新 repo 的 README,說明:
 
-- 兩種安裝跑法:本機 `bash script/setup.sh`、`curl ... | bash` 一行流。
+- 安裝流程:先 `git clone`,再 `bash script/setup.sh`(或分開跑 install-base.sh / install-tools.sh)。
 - `.zshrc` 以 **symlink** 部署(`~/.zshrc` → `~/code/dotfiles/.zshrc`),及如何確認(`ls -la ~/.zshrc`)。
 - 反安裝:`rm ~/.zshrc && mv ~/.zshrc.bak ~/.zshrc`(還原備份)。
 
@@ -78,7 +78,7 @@ script/
 >
 ```
 
-- 一律 `read -a picks </dev/tty`(本機與 `curl|bash` 皆可互動)。
+- 一律 `read -a picks </dev/tty`(即使腳本 stdin 被導向/管道,仍讀得到鍵盤)。
 - 空格分隔多選;空輸入(Enter)= 全裝;無效編號忽略。
 - 每個工具用各自最合適的安裝法,實作時逐一確認:
   - fastfetch:apt(Ubuntu 24.04+ 有);舊版需 PPA 或 GitHub `.deb`。
@@ -127,7 +127,7 @@ command -v fastfetch &>/dev/null && fastfetch
 ## 驗收標準
 
 1. `bash script/install-base.sh` 在乾淨環境裝好 zsh + 插件 + symlink `.zshrc` + chsh,重跑不重複/不報錯。
-2. `bash script/install-tools.sh` 跳出選單;`1 3` 只裝 fastfetch+nvm;Enter 全裝;本機與 `curl|bash` 皆能互動。
+2. `bash script/install-tools.sh` 跳出選單;`1 3` 只裝 fastfetch+nvm;Enter 全裝;stdin 被導向時仍能從鍵盤選擇(`/dev/tty`)。
 3. `bash script/setup.sh` 一條龍:基底 + 工具選單。
 4. 任一工具未裝時,開啟 zsh **不報任何 error**。
 5. 舊 `setup_linux.sh`、`install_tools.sh` 已刪除;xfce/tablet 腳本未被更動。
