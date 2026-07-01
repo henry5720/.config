@@ -10,8 +10,18 @@ TOOLS=(fastfetch bottom nvm)
 
 install_fastfetch() {
   command -v fastfetch &>/dev/null && { echo -e "${BLUE}✅ fastfetch 已安裝。${NC}"; return; }
-  echo -e "${GREEN}📦 安裝 fastfetch (apt)...${NC}"
-  sudo apt install -y fastfetch
+  echo -e "${GREEN}📦 安裝 fastfetch (GitHub .deb)...${NC}"
+  local url deb
+  url=$(curl -fsSL https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest \
+        | grep -o 'https://[^"]*/fastfetch-linux-amd64\.deb' | head -1)
+  if [ -z "$url" ]; then
+    echo -e "${BLUE}⚠️ 找不到 fastfetch 的 .deb 連結(GitHub API 限流或資產改名?),跳過。${NC}"
+    return 0
+  fi
+  deb=$(mktemp --suffix=.deb)
+  curl -fsSL "$url" -o "$deb"
+  sudo dpkg -i "$deb" || sudo apt install -f -y
+  rm -f "$deb"
 }
 
 install_bottom() {
