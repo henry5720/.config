@@ -20,6 +20,10 @@ install_bottom() {
   local url deb
   url=$(curl -fsSL https://api.github.com/repos/ClementTsang/bottom/releases/latest \
         | grep -o 'https://[^"]*_amd64\.deb' | head -1)
+  if [ -z "$url" ]; then
+    echo -e "${BLUE}⚠️ 找不到 bottom 的 .deb 連結(GitHub API 限流或資產改名?),跳過。${NC}"
+    return 0
+  fi
   deb=$(mktemp --suffix=.deb)
   curl -fsSL "$url" -o "$deb"
   sudo dpkg -i "$deb" || sudo apt install -f -y

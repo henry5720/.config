@@ -35,8 +35,10 @@ if [ -L "$TARGET" ] && [ "$(readlink -f "$TARGET")" = "$(readlink -f "$SOURCE")"
   echo -e "${BLUE}✅ ~/.zshrc 已指向 repo,跳過。${NC}"
 else
   if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
-    echo -e "${GREEN}📦 備份現有 ~/.zshrc → ~/.zshrc.bak${NC}"
-    mv "$TARGET" "$HOME/.zshrc.bak"
+    BACKUP="$HOME/.zshrc.bak"
+    [ -e "$BACKUP" ] && BACKUP="$HOME/.zshrc.bak.$(date +%Y%m%d%H%M%S)"  # 別覆蓋既有備份
+    echo -e "${GREEN}📦 備份現有 ~/.zshrc → $BACKUP${NC}"
+    mv "$TARGET" "$BACKUP"
   fi
   echo -e "${GREEN}🔗 建立 symlink ~/.zshrc → $SOURCE${NC}"
   ln -s "$SOURCE" "$TARGET"
