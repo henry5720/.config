@@ -66,10 +66,10 @@ rm ~/.zshrc && mv ~/.zshrc.bak ~/.zshrc
 只版控 `lua/config/options.lua`(依 LazyVim 目錄慣例),設定 `vim.g.clipboard`:SSH 連線用 OSC 52 同步剪貼簿,否則用 Termux 剪貼簿工具。需搭配既有 LazyVim 基底。
 
 ### opencode (`.config/opencode/`)
-`opencode.json` 設定走 **TeamSync 代理**的多家模型(Gemini/Claude/GPT/DeepSeek/Kimi 等)、MCP servers(`context7`、`sequential-thinking`、`chrome-devtools`)與外掛(`superpowers`、`wakatime`)。`AGENTS.md` 定義「資深全端工程師」persona 與 TDD 工作流(內容與 `ai-agent/development-guidelines.md` 相同)。
+`opencode.json` 設定走 **TeamSync 代理**的多家模型(Gemini/Claude/GPT/DeepSeek/Kimi 等)、MCP servers(`context7`、`sequential-thinking`、`chrome-devtools`)與外掛(`superpowers`、`wakatime`)。`AGENTS.md` 定義「資深全端工程師」persona 與 TDD 工作流,是這套開發準則的唯一來源。
 
 ### ai-agent (`ai-agent/`)
-給各家 AI 工具貼用的 persona / rules 文件,非可執行程式:`development-guidelines.md`(開發準則,opencode `AGENTS.md` 的來源)、`ai-rules.md`(Cursor 風格 rules)、`AGENTS(think-mode)*.md`(「思維總監」對抗式 persona)。
+給各家 AI 工具貼用的 persona / rules 文件,非可執行程式:`ai-rules.md`(Cursor 風格 rules)、`AGENTS(think-mode)*.md`(「思維總監」對抗式 persona)。開發準則本身以 `.config/opencode/AGENTS.md` 為單一來源。
 
 ### Termux 桌面腳本 (`script/startxfce_*.sh`、`set-up-tablet.sh`)
 **與 WSL 無關**,是 Android/Termux 上的腳本:`set-up-tablet.sh` 首次安裝 XFCE/X11 GUI 堆疊;`startxfce_native.sh` 用軟體渲染直接跑 XFCE;`startxfce_proot.sh` 進 proot-distro Debian 跑 XFCE。
