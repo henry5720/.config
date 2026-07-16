@@ -16,3 +16,7 @@ autoProxy=true
 
 # 允許 WSL 內的服務綁定到 Windows 的所有 IP
 dnsTunneling=true
+
+[experimental]
+# 讓 host 用自己的 LAN IP 回連 WSL 內的服務；沒這行 host 打自己外部 IP 不通，只能用 localhost
+hostAddressLoopback=true
