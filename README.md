@@ -10,6 +10,7 @@
 |---|---|
 | `.zshrc` | 純 zsh 設定:Powerlevel10k、`zsh-autosuggestions`、`zsh-syntax-highlighting`(從 `~/.config/zsh/` 載入)、nvm、開場 `fastfetch`。 |
 | `.tmux.conf` + `.config/tmux/` | 高度客製的 tmux:TPM 外掛、狀態列、編號 session 管理,以及大量 AI-agent 自動化腳本(見下方 tmux 段)。 |
+| `.ssh/config` | SSH 連線設定:GitHub、Tailscale 節點(laptop/desktop/nettop、Termux 的 pad/phone)、Oracle VPS。`phone` 帶 code-server/dev 埠轉發。**不含私鑰**,部署方式見下方 ssh 段。 |
 | `.config/nvim/` | 只有 `lua/config/options.lua` 一個片段(剪貼簿處理),需搭配既有的 LazyVim 安裝,**非完整 nvim 設定**。 |
 | `.config/opencode/` | [opencode](https://opencode.ai)(終端 AI coding agent)設定:模型供應商、MCP servers、外掛;`AGENTS.md` 為 persona/工作流指示。 |
 | `ai-agent/` | 給各家 AI 工具用的 persona / rules 文件(開發準則、Cursor rules、think-mode 等)。 |
@@ -48,6 +49,33 @@ ls -la ~/.zshrc      # 應顯示 ~/.zshrc -> ~/code/dotfiles/.zshrc
 ```bash
 rm ~/.zshrc && mv ~/.zshrc.bak ~/.zshrc
 ```
+
+### ssh 部署(手動,無腳本)
+
+`.ssh/config` 不由 `install-base.sh` 部署,需手動擇一。**先決條件**:三種方式都需要私鑰
+`~/.ssh/henry5720`(config 內所有 Host 的 `IdentityFile`,**未附於 repo**),放好後設權限
+`chmod 600 ~/.ssh/henry5720`,否則所有連線失敗。
+
+擇一(由鬆到緊):
+
+```bash
+# 方式 A|Include(推薦):repo 管共用,本機仍可疊加自己的 Host,pull 即生效
+#   把 Include 放在最上面(prepend)。用暫存檔避免讀寫同檔清空原內容。
+{ echo 'Include ~/code/dotfiles/.ssh/config'; cat ~/.ssh/config 2>/dev/null; } > ~/.ssh/config.new \
+  && mv ~/.ssh/config.new ~/.ssh/config
+
+# 方式 B|symlink:pull 即生效,但整份被 repo 獨佔、無法再放機器特定設定,且覆蓋既有檔
+mv ~/.ssh/config ~/.ssh/config.bak 2>/dev/null; ln -s ~/code/dotfiles/.ssh/config ~/.ssh/config
+
+# 方式 C|copy:完全自主可任意改,但 pull 後不會生效、需手動重 copy,易與 repo drift
+cp ~/code/dotfiles/.ssh/config ~/.ssh/config
+```
+
+`chmod 700 ~/.ssh` 收斂目錄權限。三種方式的差異就是「同步 vs 自主」的取捨:A 兩者兼顧、
+B 全同步無自主、C 全自主無同步。
+
+> ssh 對多數選項是 **first-match-wins**。方式 A 把 `Include` 放最上面 → repo 設定優先;
+> 若某台想用本機值蓋掉 repo 的同名 Host,改把 `Include` 放檔案**最後**即可。
 
 ## 各區塊說明
 
