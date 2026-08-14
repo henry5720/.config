@@ -17,7 +17,7 @@
 | `script/ubuntu/` | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 |
 | `script/termux/` | Android/Termux 桌面環境腳本(xfce/tablet),與 Ubuntu 無關。 |
 | `wsl/` | Windows 主機側的 WSL2 設定(`.wslconfig`)與 portproxy 備忘,**手動使用、非由腳本部署**。 |
-| `docs/` | 設計與實作規劃文件(spec / plan)。詳細說明若有需要,放這裡。 |
+| `docs/` | 設計與實作規劃文件(spec / plan),以及 [`ai-agent-setup.md`](docs/ai-agent-setup.md)(agent 規則 / skill / plugin 各自怎麼管)。 |
 
 ## 安裝(WSL 主線)
 
@@ -77,39 +77,17 @@ B 全同步無自主、C 全自主無同步。
 > ssh 對多數選項是 **first-match-wins**。方式 A 把 `Include` 放最上面 → repo 設定優先;
 > 若某台想用本機值蓋掉 repo 的同名 Host,改把 `Include` 放檔案**最後**即可。
 
-### AI agent 規則部署(手動,無腳本)
+### AI agent 部署(手動,無腳本)
 
-`ai-agent/AGENTS.md` 是個人偏好的**單一來源**,各家 agent 讀不同路徑,所以各拉一條 symlink 指回它:
+規則(本 repo 管)、skill 與 plugin(訂閱來的,不進本 repo)的完整說明,見
+[`docs/ai-agent-setup.md`](docs/ai-agent-setup.md)。最常用的一行:
 
 ```bash
-# Claude Code —— 只讀 CLAUDE.md,不讀 AGENTS.md,所以要換名字
+# 新機器套用個人規則 —— Claude Code 只讀 CLAUDE.md,不讀 AGENTS.md
 ln -sfn ~/code/dotfiles/ai-agent/AGENTS.md ~/.claude/CLAUDE.md
-
-# opencode —— repo 內已是 relative symlink,clone 下來就生效,不用做事
-ls -la ~/code/dotfiles/.config/opencode/AGENTS.md
 ```
 
-改 `ai-agent/AGENTS.md` 後 `git pull` 即全部生效(同 `.zshrc` 的做法)。原本 `~/.claude/CLAUDE.md`
-若是實體檔,`ln -sfn` 會直接覆蓋,先 `cp` 一份備份。
-
-> ⚠️ 不要把本體放在 `dotfiles/.claude/CLAUDE.md`。Claude 認的專案指引位置就是 `./CLAUDE.md`
-> 或 `./.claude/CLAUDE.md`,而多份 CLAUDE.md 是**串接**進 context 不是覆蓋 ——
-> 在 dotfiles 裡開 Claude 會 user scope 一次、project scope 再一次,同一份規則載入兩遍。
-
-### skills 部署(手動,無腳本)
-
-skills **不版控在本 repo**,它們是別人的 repo,複製進來以後就跟不上上游。重灌時直接重裝:
-
-```bash
-npx skills@latest add mattpocock/skills     # 主力:grill-with-docs / diagnosing-bugs / tdd …
-npx skills@latest add Leonxlnx/taste-skill  # 前端設計品味
-npx skills@latest add stablyai/orca         # orca-cli / orchestration
-npx skills@latest add vercel-labs/skills
-```
-
-安裝器會問要裝哪幾個、裝到哪些 agent。實際落地在 `~/.agents/skills/`(Codex 等通用 agent 的標準路徑),
-Claude 端是 `~/.claude/skills/` 底下的 symlink 指過去,所以一份 skill 兩邊共用。
-`~/.agents/.skill-lock.json` 記錄了裝了哪些與版本,那是本機狀態,不進 repo。
+`.config/opencode/AGENTS.md` 是 repo 內的 relative symlink,clone 下來就生效。
 
 ## 各區塊說明
 
