@@ -12,8 +12,8 @@
 | `.tmux.conf` + `.config/tmux/` | 高度客製的 tmux:TPM 外掛、狀態列、編號 session 管理,以及大量 AI-agent 自動化腳本(見下方 tmux 段)。 |
 | `.ssh/config` | SSH 連線設定:GitHub、Tailscale 節點(laptop/desktop/nettop、Termux 的 pad/phone)、Oracle VPS。`phone` 帶 code-server/dev 埠轉發。**不含私鑰**,部署方式見下方 ssh 段。 |
 | `.config/nvim/` | 只有 `lua/config/options.lua` 一個片段(剪貼簿處理),需搭配既有的 LazyVim 安裝,**非完整 nvim 設定**。 |
-| `.config/opencode/` | [opencode](https://opencode.ai)(終端 AI coding agent)設定:模型供應商、MCP servers、外掛;`AGENTS.md` 為 persona/工作流指示。 |
-| `ai-agent/` | 給各家 AI 工具用的 persona / rules 文件(開發準則、Cursor rules、think-mode 等)。 |
+| `.config/opencode/` | [opencode](https://opencode.ai)(終端 AI coding agent)設定:模型供應商、MCP servers、外掛;`AGENTS.md` 是指向 `ai-agent/AGENTS.md` 的 symlink。 |
+| `ai-agent/` | **個人偏好的單一來源** `AGENTS.md`,各家 agent 都 symlink 到它;另含 think-mode persona 與 skill 清單備份。 |
 | `script/ubuntu/` | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 |
 | `script/termux/` | Android/Termux 桌面環境腳本(xfce/tablet),與 Ubuntu 無關。 |
 | `wsl/` | Windows 主機側的 WSL2 設定(`.wslconfig`)與 portproxy 備忘,**手動使用、非由腳本部署**。 |
@@ -77,6 +77,40 @@ B 全同步無自主、C 全自主無同步。
 > ssh 對多數選項是 **first-match-wins**。方式 A 把 `Include` 放最上面 → repo 設定優先;
 > 若某台想用本機值蓋掉 repo 的同名 Host,改把 `Include` 放檔案**最後**即可。
 
+### AI agent 規則部署(手動,無腳本)
+
+`ai-agent/AGENTS.md` 是個人偏好的**單一來源**,各家 agent 讀不同路徑,所以各拉一條 symlink 指回它:
+
+```bash
+# Claude Code —— 只讀 CLAUDE.md,不讀 AGENTS.md,所以要換名字
+ln -sfn ~/code/dotfiles/ai-agent/AGENTS.md ~/.claude/CLAUDE.md
+
+# opencode —— repo 內已是 relative symlink,clone 下來就生效,不用做事
+ls -la ~/code/dotfiles/.config/opencode/AGENTS.md
+```
+
+改 `ai-agent/AGENTS.md` 後 `git pull` 即全部生效(同 `.zshrc` 的做法)。原本 `~/.claude/CLAUDE.md`
+若是實體檔,`ln -sfn` 會直接覆蓋,先 `cp` 一份備份。
+
+> ⚠️ 不要把本體放在 `dotfiles/.claude/CLAUDE.md`。Claude 認的專案指引位置就是 `./CLAUDE.md`
+> 或 `./.claude/CLAUDE.md`,而多份 CLAUDE.md 是**串接**進 context 不是覆蓋 ——
+> 在 dotfiles 裡開 Claude 會 user scope 一次、project scope 再一次,同一份規則載入兩遍。
+
+### skills 部署(手動,無腳本)
+
+skills **不版控在本 repo**,它們是別人的 repo,複製進來以後就跟不上上游。重灌時直接重裝:
+
+```bash
+npx skills@latest add mattpocock/skills     # 主力:grill-with-docs / diagnosing-bugs / tdd …
+npx skills@latest add Leonxlnx/taste-skill  # 前端設計品味
+npx skills@latest add stablyai/orca         # orca-cli / orchestration
+npx skills@latest add vercel-labs/skills
+```
+
+安裝器會問要裝哪幾個、裝到哪些 agent。實際落地在 `~/.agents/skills/`(Codex 等通用 agent 的標準路徑),
+Claude 端是 `~/.claude/skills/` 底下的 symlink 指過去,所以一份 skill 兩邊共用。
+`~/.agents/.skill-lock.json` 記錄了裝了哪些與版本,那是本機狀態,不進 repo。
+
 ## 各區塊說明
 
 ### zsh (`.zshrc`)
@@ -95,10 +129,24 @@ B 全同步無自主、C 全自主無同步。
 只版控 `lua/config/options.lua`(依 LazyVim 目錄慣例),設定 `vim.g.clipboard`:SSH 連線用 OSC 52 同步剪貼簿,否則用 Termux 剪貼簿工具。需搭配既有 LazyVim 基底。
 
 ### opencode (`.config/opencode/`)
-`opencode.json` 設定走 **TeamSync 代理**的多家模型(Gemini/Claude/GPT/DeepSeek/Kimi 等)、MCP servers(`context7`、`sequential-thinking`、`chrome-devtools`)與外掛(`superpowers`、`wakatime`)。`AGENTS.md` 定義「資深全端工程師」persona 與 TDD 工作流,是這套開發準則的唯一來源。
+`opencode.json` 設定走 **TeamSync 代理**的多家模型(Gemini/Claude/GPT/DeepSeek/Kimi 等)、MCP servers(`context7`、`sequential-thinking`、`chrome-devtools`)與外掛(`superpowers`、`wakatime`)。`AGENTS.md` 是指向 `../../ai-agent/AGENTS.md` 的 symlink(見下方 ai-agent 段)。
 
 ### ai-agent (`ai-agent/`)
-給各家 AI 工具貼用的 persona / rules 文件,非可執行程式:`ai-rules.md`(Cursor 風格 rules)、`AGENTS(think-mode)*.md`(「思維總監」對抗式 persona)。開發準則本身以 `.config/opencode/AGENTS.md` 為單一來源。
+`AGENTS.md` —— 跨 repo、跨 agent 的**個人偏好單一來源**(部署見上方)。刻意只寫「換到任何一個 repo
+都還成立」的事:語言、白話、回覆方式、誠實。
+
+寫進來之前先過三個問題:
+
+| 這件事 | 該放哪 |
+|---|---|
+| 換個 repo 就不成立(技術棧、build 指令、專案慣例) | 該 repo 自己的 `CLAUDE.md` |
+| 是多步驟流程(debug、TDD、需求對齊) | 寫成 skill,按需載入 |
+| linter / hook / `permissions.deny` 做得到 | 交給工具,不要寫成規則 |
+
+規則要**可驗證** —— 「白話一點」不可驗證,「一個句子拿掉抽象名詞就沒有資訊了就重寫」可以。
+不可驗證的規則你沒辦法指著回覆說它違規,agent 也就不會穩定遵守。
+
+`AGENTS(think-mode)*.md` 是「思維總監」對抗式 persona,手動貼用,不在上述 symlink 鏈裡。
 
 ### Termux 桌面腳本 (`script/termux/`)
 **與 WSL 無關**,是 Android/Termux 上的腳本:`set-up-tablet.sh` 首次安裝 XFCE/X11 GUI 堆疊;`startxfce_native.sh` 用軟體渲染直接跑 XFCE;`startxfce_proot.sh` 進 proot-distro Debian 跑 XFCE。
@@ -120,5 +168,5 @@ Windows 主機側檔案,**不由本 repo 腳本部署**:`.wslconfig`(記憶體 1
 1. `script/termux/startxfce_proot.sh` **寫死使用者名稱 `henry`**(`su - henry`)。
 2. tmux 的 agent 整合依賴**未附的私有 binary** `~/.config/agent-tracker/bin/agent` 及其 `~/.config/agent-tracker/`、`~/.cache/agent/` 狀態檔;缺了功能降級但不致命。
 3. `.config/opencode/opencode.json` 綁**私有 TeamSync 代理**,需 `TEAMSYNC_API_KEY` 與數個 `TEAMSYNC_*_BASE_URL` 環境變數,開箱無法直接使用。
-4. `ai-agent/ai-rules.md` 綁**特定技術棧**(React+TS+Vite、C#+Python+Node、SQL Server+PostgreSQL)。
+4. `ai-agent/AGENTS.md` 是 henry 的**個人回覆偏好**(繁中、白話),fork 前請整份換掉。
 5. `wsl/` 內含範例 IP,且需手動複製到 Windows 端。
