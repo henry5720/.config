@@ -11,9 +11,10 @@
 |---|---|---|---|---|
 | **規則** | 你希望 agent 怎麼做事 | 用繁中回、講白話 | **你** | 本 repo |
 | **skill** | 一套做某件事的步驟 | 怎麼查 bug、怎麼跑 TDD | 別人 | `~/.agents/skills/` |
+| **skill(自寫)** | 同上,但是你自己的 | 寫工作日誌、讀 PM 待辦 | **你** | `~/code/work-helper/skills/` |
 | **plugin** | Claude 的擴充功能 | superpowers、context7 | 別人 | `~/.claude/plugins/` |
 
-**你只需要維護第一種。** 後兩種是訂閱來的,跑指令更新就好,壞了重裝。
+**你要維護的是「你寫的」那兩列。** 別人的是訂閱來的,跑指令更新就好,壞了重裝。
 
 ## 規則:一份本體,各 agent 拉線過去
 
@@ -95,6 +96,26 @@ npx skills@latest add vercel-labs/skills
 一行指令能更新的事,變成長期的維護負擔。所以這裡**只記去哪裡拿,不記東西本身**。
 
 重灌時就是把上面四行再跑一次。
+
+### 自己寫的 skill:在 work-helper,一樣不進本 repo
+
+上面講的是**別人的** skill。自己寫的沒有上游,`npx skills update` 管不到,
+但結論一樣——**不放 dotfiles**,理由換成:
+
+**skill 要跟它依賴的東西放一起。** 例如 `slack-todo` 一定會呼叫
+`work-helper/bin/slack-list`。放在同一個 repo,路徑是相對的、一次 commit 改完;
+拆兩個 repo 就得硬寫絕對路徑,而且遲早不同步。
+
+所以自己寫的 skill 都在 `~/code/work-helper/skills/`,這裡照樣**只記去哪裡拿**:
+
+```bash
+git clone git@github.com:henry5720/work-helper.git ~/code/work-helper
+for s in ~/code/work-helper/skills/*/; do
+  ln -sfn "$s" ~/.claude/skills/"$(basename "$s")"
+done
+```
+
+跟 `.zshrc`、`AGENTS.md` 是同一招:真的檔案只有一份,`~/.claude/skills/` 底下全是捷徑。
 
 ### 更新
 
