@@ -51,28 +51,26 @@ install_code_server() {
     curl -fsSL https://code-server.dev/install.sh | sh
   fi
 
-  # 部署設定檔(symlink,已存在且非本 repo symlink 先備份)
-  local src="$REPO_DIR/.config/code-server/config.yaml"
+  # 部署設定檔(cp 範本,不是 symlink —— 本機那份要能填密碼,不能進 git)
+  local src="$REPO_DIR/.config/code-server/config.yaml.example"
   local dst="$HOME/.config/code-server/config.yaml"
   mkdir -p "$(dirname "$dst")"
-  if [ -L "$dst" ] && [ "$(readlink -f "$dst")" = "$(readlink -f "$src")" ]; then
-    echo -e "${BLUE}✅ code-server config 已指向 repo,跳過。${NC}"
+  if [ -L "$dst" ]; then
+    echo -e "${GREEN}📦 舊版把 config 部署成 symlink,拆掉改 cp${NC}"   # 舊行為的遷移
+    rm "$dst"
+  fi
+  if [ -e "$dst" ]; then
+    echo -e "${BLUE}✅ code-server config 已存在,不覆蓋(裡面可能有密碼)。${NC}"
   else
-    if [ -e "$dst" ] || [ -L "$dst" ]; then
-      local backup="$dst.bak"
-      [ -e "$backup" ] && backup="$dst.bak.$(date +%Y%m%d%H%M%S)"   # 別覆蓋既有備份
-      echo -e "${GREEN}📦 備份現有 config → $backup${NC}"
-      mv "$dst" "$backup"
-    fi
-    echo -e "${GREEN}🔗 建立 symlink $dst → $src${NC}"
-    ln -s "$src" "$dst"
+    echo -e "${GREEN}📄 從範本建立 $dst${NC}"
+    cp "$src" "$dst"
   fi
 
   cat <<'EOF'
 
-  設定檔不含密碼(它在 git 裡)。密碼用環境變數,寫進不版控的地方:
-    export HASHED_PASSWORD='$argon2i$...'   # 或 export PASSWORD='...'
-  啟動:code-server            (預設只綁 127.0.0.1:8080)
+  設定改 ~/.config/code-server/config.yaml(這份不在 git 裡),密碼也填在那:
+    echo -n '你的密碼' | npx argon2-cli -e     # 產 hash,貼成 hashed-password: 那行
+  啟動:systemctl --user enable --now code-server   (預設只綁 127.0.0.1:8080)
   從別台連進來的五種做法:docs/code-server-remote.md
 EOF
 }

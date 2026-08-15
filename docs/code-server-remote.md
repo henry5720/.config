@@ -144,6 +144,33 @@ mkcert henry-desktop.local 100.119.136.27
 
 ---
 
+## 密碼放哪
+
+tailscale 那層已經擋掉 tailnet 以外的人,code-server 的密碼是第二道。
+
+`.config/code-server/config.yaml.example` 是**範本**,安裝腳本會 cp 一份到
+`~/.config/code-server/config.yaml`。密碼填在 cp 出來的那份,不要填回範本——範本在 git 裡,
+而且這個 repo 是公開的。argon2 hash 一樣不能放,它是可以離線爆的。
+
+```bash
+echo -n '你的密碼' | npx argon2-cli -e
+# 把整串貼進 ~/.config/code-server/config.yaml:
+#   hashed-password: $argon2i$v=19$m=4096,t=3,p=1$...
+```
+
+`hashed-password` 優先於 `password`。環境變數 `HASHED_PASSWORD` / `PASSWORD` 又會蓋過設定檔
+(code-server 讀完會把它們從 `process.env` 刪掉,不傳給子 process),但**只有你手動在終端機
+前景跑 `code-server` 時才有用**——systemd 起的 service 不經過 shell,讀不到任何 shell rc。
+
+要手機隨時連得到就得常駐,所以走 systemd:
+
+```bash
+systemctl --user enable --now code-server
+sudo loginctl enable-linger "$USER"   # 沒開終端機時也讓它活著
+```
+
+⚠️ WSL 的限制:Windows 重開機後 WSL 不會自己起來,systemd 服務也就不在,手機會連不到。
+
 ## 一句話結論
 
 - **phone** → A（`ssh phone`，config 已備好）

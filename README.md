@@ -21,7 +21,7 @@
 | `.ssh/config` | SSH 連線設定:GitHub、Tailscale 節點、Oracle VPS。**不含私鑰**。 | [↓](#ssh-部署) |
 | `.config/nvim/` | 只有 `lua/config/options.lua` 一個片段(剪貼簿處理),**非完整 nvim 設定**。 | [↓](#nvim) |
 | `.config/opencode/` | [opencode](https://opencode.ai) 設定:MCP servers 與外掛,**不含模型供應商**。 | [↓](#opencode) |
-| `.config/code-server/` | code-server 設定:只綁 `127.0.0.1`,TLS 交給外層。密碼不進 repo。 | [↓](#code-server-部署) |
+| `.config/code-server/` | code-server 設定**範本**:只綁 `127.0.0.1`,TLS 交給外層。生效的那份留在本機,密碼寫在那,不進 repo。 | [↓](#code-server-部署) |
 | `ai-agent/` | **agent 規則的單一來源** `AGENTS.md`,各家 agent 都 symlink 到它。 | [↓](#ai-agent) |
 | `script/ubuntu/` | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 | [↓](#安裝與部署) |
 | `script/termux/` | Android/Termux 桌面環境腳本(xfce/tablet),與 Ubuntu 無關。 | [↓](#termux) |
@@ -107,18 +107,16 @@ ln -sfn ~/code/dotfiles/ai-agent/AGENTS.md ~/.claude/CLAUDE.md
 ### code-server 部署
 
 在 `install-tools.sh` 的選單裡選 `code-server` 就會一次做完兩件事:用官方安裝腳本裝 binary、
-把 `~/.config/code-server/config.yaml` 建成指向本 repo 的 **symlink**(原檔會先備份成
-`config.yaml.bak`)。
+把 `config.yaml.example` **cp** 成 `~/.config/code-server/config.yaml`(已存在就不覆蓋)。
+
+這裡刻意用 cp 而不是 symlink。範本裡實際生效的只有四行,其中三行還是 code-server 的預設值,
+symlink 能同步的東西趨近於零;但密碼必須寫進生效的那份,而 symlink 會讓它落在 git 裡。
 
 ```bash
-ls -la ~/.config/code-server/config.yaml   # 應指向 ~/code/dotfiles/.config/code-server/config.yaml
-```
-
-**密碼不在設定檔裡**——那個檔案在 git 裡。改用環境變數(會蓋過設定檔),寫進不版控的地方:
-
-```bash
-export HASHED_PASSWORD='$argon2i$...'   # 建議
-export PASSWORD='...'                   # 或明碼
+echo -n '你的密碼' | npx argon2-cli -e     # 產 argon2 hash
+vim ~/.config/code-server/config.yaml     # 加一行 hashed-password: $argon2i$...
+systemctl --user enable --now code-server
+sudo loginctl enable-linger "$USER"       # 沒開終端機時也讓它活著
 ```
 
 預設只綁 `127.0.0.1:8080`、`cert: false`,也就是**假設 TLS 由外層處理**。
@@ -196,7 +194,7 @@ git show <commit>:.config/opencode/opencode.json
 
 註解樣式看檔案是哪一種,兩種不要互相看齊:
 
-- **設定檔**(`.zshrc`、`.ssh/config`、`.config/code-server/config.yaml`)——一堆彼此無關的
+- **設定檔**(`.zshrc`、`.ssh/config`、`.config/code-server/config.yaml.example`)——一堆彼此無關的
   設定並排、會跳著找,用 `# ===` 橫幅 + 編號當目錄。
 - **流程腳本**(`script/ubuntu/*.sh`)——從上到下跑一次、步驟有先後,用純 `# 1.` `# 2.` 編號。
   橫幅會讓步驟看起來像可以各自獨立看的模組,但順序就是全部。

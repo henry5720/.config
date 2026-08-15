@@ -1,6 +1,8 @@
-# 遠端連線的五種做法與各自代價,見 docs/code-server-remote.md。
-# 這份是「安全預設」:只綁 127.0.0.1、TLS 交給外面處理。
+# 這是範本,不是生效的設定。install-tools.sh 會 cp 一份到
+# ~/.config/code-server/config.yaml,之後改那份 —— 密碼寫在那裡,不進 git。
+# 內容是「安全預設」:只綁 127.0.0.1、TLS 交給外面處理。
 # 適用 phone(方案 A:ssh -L)和 henry-desktop(方案 B:tailscale serve)。
+# 遠端連線的五種做法與各自代價,見 docs/code-server-remote.md。
 
 # ===============================================================
 # 1. 監聽位址
@@ -12,10 +14,10 @@ bind-addr: 127.0.0.1:8080
 # ===============================================================
 # 2. 認證
 # ===============================================================
-# 密碼不寫在這裡 —— 這個檔案在 git 裡。
-# 改用環境變數(會蓋過本檔設定),寫進 ~/.zshrc.local 之類不版控的地方:
-#   export PASSWORD='...'                 # 明碼
-#   export HASHED_PASSWORD='$argon2i$...' # 建議,用 argon2 產
+# 密碼填在你本機那份,不要填回這個範本 —— 範本在 git 裡,而且 repo 是公開的。
+# 產 hash:echo -n '你的密碼' | npx argon2-cli -e
+# 然後在 ~/.config/code-server/config.yaml 加一行(hashed-password 優先於 password):
+#   hashed-password: $argon2i$v=19$m=4096,t=3,p=1$...
 auth: password
 
 # ===============================================================
