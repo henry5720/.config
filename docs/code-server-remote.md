@@ -78,13 +78,19 @@ code-server 完全不用改設定，tailscale 在前面當反向代理並終結 
 
 ```powershell
 # Windows PowerShell,設一次就常駐
-tailscale serve --bg --https=8080 8080
+tailscale serve --bg --https=443 8080
 tailscale serve status      # 確認,順便看到完整網址
 ```
 
-之後任何裝置的瀏覽器開 `https://henry-desktop.<你的 tailnet>.ts.net:8080`。
+之後任何裝置的瀏覽器開 `https://henry-desktop.<你的 tailnet>.ts.net`（不用打 port）。
 
-要撤掉：`tailscale serve --https=8080 off`。
+要撤掉：`tailscale serve --https=443 off`。
+
+> ⚠️ **listener 不能跟後端同一個 port**（別寫成 `--https=8080 8080`）。
+> mirrored networking 下 Windows 和 WSL **共用 port 空間**：Windows 的 tailscaled 一綁
+> `100.119.136.27:8080`，WSL 這邊 `bind 127.0.0.1:8080` 就會拿到
+> `[Errno 98] Address already in use`，code-server 根本起不來。
+> listener 走 443、後端走 8080 就錯開了。
 
 ### C|tailscale cert + code-server 吃憑證
 

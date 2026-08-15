@@ -114,9 +114,12 @@ symlink 能同步的東西趨近於零;但密碼必須寫進生效的那份,而 
 
 ```bash
 vim ~/.config/code-server/config.yaml     # 取消註解 password: 那行,明碼即可
-systemctl --user enable --now code-server
-sudo loginctl enable-linger "$USER"       # 沒開終端機時也讓它活著
+code-server                               # 要用的時候再開,丟 tmux 裡
 ```
+
+要它一直在(重開機自動起、沒開終端機也活著)才需要 systemd,
+`systemctl --user enable --now code-server` 加 `sudo loginctl enable-linger "$USER"`。
+手動開就用不到——WSL 反正重開機也不會自己起來。
 
 密碼用明碼就好:外面還有 tailscale 那層,只有 tailnet 裡的裝置連得到,
 code-server 自己的預設也是明碼。腳本會把那份 `chmod 600`。想更保險可以改
