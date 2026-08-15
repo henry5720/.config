@@ -20,11 +20,10 @@
 | `.tmux.conf` + `.config/tmux/` | 高度客製的 tmux:TPM 外掛、狀態列、編號 session 管理,以及大量 AI-agent 自動化腳本。 | [↓](#tmux) |
 | `.ssh/config` | SSH 連線設定:GitHub、Tailscale 節點、Oracle VPS。**不含私鑰**。 | [↓](#ssh-部署) |
 | `.config/nvim/` | 只有 `lua/config/options.lua` 一個片段(剪貼簿處理),**非完整 nvim 設定**。 | [↓](#nvim) |
-| `.config/opencode/` | [opencode](https://opencode.ai) 設定:模型供應商、MCP servers、外掛。 | [↓](#opencode) |
+| `.config/opencode/` | [opencode](https://opencode.ai) 設定:MCP servers 與外掛,**不含模型供應商**。 | [↓](#opencode) |
 | `.config/code-server/` | code-server 設定:只綁 `127.0.0.1`,TLS 交給外層。密碼不進 repo。 | [↓](#code-server-部署) |
 | `ai-agent/` | **agent 規則的單一來源** `AGENTS.md`,各家 agent 都 symlink 到它。 | [↓](#ai-agent) |
 | `script/ubuntu/` | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 | [↓](#安裝與部署) |
-| `script/oci/` | Oracle Cloud 專用:搶 A1(`grab-a1.sh`)、閒置保活(`setup-keepalive.sh`)。 | [↑](#延伸文件) |
 | `script/termux/` | Android/Termux 桌面環境腳本(xfce/tablet),與 Ubuntu 無關。 | [↓](#termux) |
 | `wsl/` | Windows 主機側的 WSL2 設定與 portproxy 備忘,**手動使用、非由腳本部署**。 | [↓](#wsl) |
 | `docs/` | 說明文件,見上方[延伸文件](#延伸文件)。 | — |
@@ -148,7 +147,20 @@ export PASSWORD='...'                   # 或明碼
 
 ### opencode
 
-`.config/opencode/opencode.json` —— 設定走 **TeamSync 代理**的多家模型(Gemini/Claude/GPT/DeepSeek/Kimi 等)、MCP servers(`context7`、`sequential-thinking`、`chrome-devtools`)與外掛(`superpowers`、`wakatime`)。
+`.config/opencode/opencode.json` —— 只放 MCP servers(`context7`、`sequential-thinking`、
+`chrome-devtools`)與 `opencode-wakatime` 外掛。
+
+**沒有 `provider` 區塊**:opencode 內建認得的 provider 用 `opencode auth login` 就好,
+手寫 provider 只有「自訂 base URL 的代理」才需要。原本那份 TeamSync 代理設定已經失效,
+留著只會在選單裡出現選了就噴錯的模型,所以整段拿掉。要撈回來當模板:
+
+```bash
+git log --oneline -- .config/opencode/opencode.json   # 找到移除前那個 commit
+git show <commit>:.config/opencode/opencode.json
+```
+
+**沒有 `superpowers` 外掛**:別人的 skill 不用 opencode plugin 這條路裝,理由和裝法見
+[`docs/ai-agent-setup.md`](docs/ai-agent-setup.md)。
 
 `.config/opencode/AGENTS.md` 是指向 `../../ai-agent/AGENTS.md` 的 symlink。
 
@@ -193,7 +205,7 @@ export PASSWORD='...'                   # 或明碼
 
 1. `script/termux/startxfce_proot.sh` **寫死使用者名稱 `henry`**(`su - henry`)。
 2. tmux 的 agent 整合依賴**未附的私有 binary** `~/.config/agent-tracker/bin/agent` 及其 `~/.config/agent-tracker/`、`~/.cache/agent/` 狀態檔;缺了功能降級但不致命。
-3. `.config/opencode/opencode.json` 綁**私有 TeamSync 代理**,需 `TEAMSYNC_API_KEY` 與數個 `TEAMSYNC_*_BASE_URL` 環境變數,開箱無法直接使用。
+3. `.config/opencode/opencode.json` **沒有設定任何模型供應商**,clone 下來要自己 `opencode auth login`。
 4. `ai-agent/AGENTS.md` 是 henry 的**個人回覆偏好**(繁中、白話),fork 前請整份換掉。
 5. `.ssh/config` 內的 Host 與 `IdentityFile` 是 henry 的,fork 後整份替換。
 6. `wsl/` 內含範例 IP,且需手動複製到 Windows 端。
