@@ -192,6 +192,17 @@ git show <commit>:.config/opencode/opencode.json
 
 `wsl/` —— Windows 主機側檔案,**不由本 repo 腳本部署**:`.wslconfig`(記憶體 16G / swap 8G / 8 CPU / mirrored 網路,需複製到 `%UserProfile%\.wslconfig`)、`command.md`(把 Windows 埠轉發進 WSL 的 `netsh portproxy` 備忘)。
 
+## 檔案慣例
+
+註解樣式看檔案是哪一種,兩種不要互相看齊:
+
+- **設定檔**(`.zshrc`、`.ssh/config`、`.config/code-server/config.yaml`)——一堆彼此無關的
+  設定並排、會跳著找,用 `# ===` 橫幅 + 編號當目錄。
+- **流程腳本**(`script/ubuntu/*.sh`)——從上到下跑一次、步驟有先後,用純 `# 1.` `# 2.` 編號。
+  橫幅會讓步驟看起來像可以各自獨立看的模組,但順序就是全部。
+
+判準不是長度(`.zshrc` 64 行有橫幅,`install-tools.sh` 113 行沒有),是「跳著讀」還是「一路讀到底」。
+
 ## 依賴一覽
 
 - **平台**:WSL2(Windows)+ Ubuntu 24.04 為主;xfce/tablet 腳本需 Termux(Android)。
