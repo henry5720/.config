@@ -9,6 +9,7 @@
 | 文件 | 什麼時候讀 |
 |---|---|
 | [`docs/ai-agent-setup.md`](docs/ai-agent-setup.md) | 想搞懂 agent 規則 / skill / MCP / plugin 各是什麼、放哪、怎麼更新。**新機器設定 AI 工具前先讀這份。** |
+| [`docs/code-server-remote.md`](docs/code-server-remote.md) | 想從 pad / 手機連自己的 code-server,卡在憑證和 secure context 的時候。列出五種做法與各自代價。 |
 | [`docs/superpowers/`](docs/superpowers) | zsh setup 腳本當初的設計與實作規劃(spec / plan),歷史紀錄性質。 |
 
 ## 目錄結構
@@ -20,8 +21,10 @@
 | `.ssh/config` | SSH 連線設定:GitHub、Tailscale 節點、Oracle VPS。**不含私鑰**。 | [↓](#ssh-部署) |
 | `.config/nvim/` | 只有 `lua/config/options.lua` 一個片段(剪貼簿處理),**非完整 nvim 設定**。 | [↓](#nvim) |
 | `.config/opencode/` | [opencode](https://opencode.ai) 設定:模型供應商、MCP servers、外掛。 | [↓](#opencode) |
+| `.config/code-server/` | code-server 設定:只綁 `127.0.0.1`,TLS 交給外層。密碼不進 repo。 | [↓](#code-server-部署) |
 | `ai-agent/` | **agent 規則的單一來源** `AGENTS.md`,各家 agent 都 symlink 到它。 | [↓](#ai-agent) |
 | `script/ubuntu/` | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 | [↓](#安裝與部署) |
+| `script/oci/` | Oracle Cloud 專用:搶 A1(`grab-a1.sh`)、閒置保活(`setup-keepalive.sh`)。 | [↑](#延伸文件) |
 | `script/termux/` | Android/Termux 桌面環境腳本(xfce/tablet),與 Ubuntu 無關。 | [↓](#termux) |
 | `wsl/` | Windows 主機側的 WSL2 設定與 portproxy 備忘,**手動使用、非由腳本部署**。 | [↓](#wsl) |
 | `docs/` | 說明文件,見上方[延伸文件](#延伸文件)。 | — |
@@ -36,12 +39,12 @@ bash script/ubuntu/setup.sh
 
 # 或分開跑
 bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + 插件 + .zshrc + 預設 shell
-bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / bottom / nvm
+bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / btop / nvm / code-server
 ```
 
 工具選單:空格分隔多選(例 `1 3`),直接 Enter = 全裝。
 
-腳本只處理 zsh 那條線。**ssh 與 AI agent 要手動各跑一次**,見下面兩節。
+腳本處理 zsh 那條線和工具選單(含 code-server 的設定檔部署)。**ssh 與 AI agent 要手動各跑一次**,見下面幾節。
 
 ### zshrc 部署
 
@@ -101,6 +104,27 @@ ln -sfn ~/code/dotfiles/ai-agent/AGENTS.md ~/.claude/CLAUDE.md
 `.config/opencode/AGENTS.md` 是 repo 內的 relative symlink,clone 下來就生效。
 
 > ⚠️ 原本的 `~/.claude/CLAUDE.md` 如果有內容,`ln -sfn` 會**直接蓋掉且不留備份**,先自行 `cp`。
+
+### code-server 部署
+
+在 `install-tools.sh` 的選單裡選 `code-server` 就會一次做完兩件事:用官方安裝腳本裝 binary、
+把 `~/.config/code-server/config.yaml` 建成指向本 repo 的 **symlink**(原檔會先備份成
+`config.yaml.bak`)。
+
+```bash
+ls -la ~/.config/code-server/config.yaml   # 應指向 ~/code/dotfiles/.config/code-server/config.yaml
+```
+
+**密碼不在設定檔裡**——那個檔案在 git 裡。改用環境變數(會蓋過設定檔),寫進不版控的地方:
+
+```bash
+export HASHED_PASSWORD='$argon2i$...'   # 建議
+export PASSWORD='...'                   # 或明碼
+```
+
+預設只綁 `127.0.0.1:8080`、`cert: false`,也就是**假設 TLS 由外層處理**。
+從 pad / 手機連進來有五種做法(ssh tunnel、`tailscale serve`、`tailscale cert`、自簽、mkcert),
+各自的代價與指令見 [`docs/code-server-remote.md`](docs/code-server-remote.md)。
 
 ## 各區塊說明
 
@@ -163,7 +187,7 @@ ln -sfn ~/code/dotfiles/ai-agent/AGENTS.md ~/.claude/CLAUDE.md
 - **tmux**:tmux、TPM、`tmux-resurrect`/`continuum`、`fzf`、`jq`、Python 3,以及私有 `agent-tracker`(未附)。
 - **編輯器**:Neovim + 既有 LazyVim 基底。
 - **AI 工具**:Node/nvm、`opencode` CLI、MCP servers(經 `npx`)。
-- **可選工具**:`fastfetch`、`bottom`(由 `install-tools.sh` 安裝)。
+- **可選工具**:`fastfetch`、`btop`、`code-server`(由 `install-tools.sh` 安裝)。
 
 ## ⚠️ 機器特定 / fork 前需自行修改
 
