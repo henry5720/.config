@@ -15,10 +15,16 @@ bind-addr: 127.0.0.1:8080
 # 2. 認證
 # ===============================================================
 # 密碼填在你本機那份,不要填回這個範本 —— 範本在 git 裡,而且 repo 是公開的。
-# 產 hash:echo -n '你的密碼' | npx argon2-cli -e
-# 然後在 ~/.config/code-server/config.yaml 加一行(hashed-password 優先於 password):
-#   hashed-password: $argon2i$v=19$m=4096,t=3,p=1$...
+# 明碼就夠了:外面還有 tailscale 那層,只有 tailnet 裡的裝置連得到,
+# 而且 code-server 自己的預設也是明碼。但別用你其他地方在用的密碼。
 auth: password
+# password: 換成你的密碼
+
+# 想更保險再改 hash(優先於 password,兩行只留一行):
+#   echo -n '你的密碼' | npx argon2-cli -e
+# hashed-password: $argon2i$v=19$m=4096,t=3,p=1$...
+
+# 兩行都空著的話 code-server 啟動會直接報錯,不會偷偷放行。
 
 # ===============================================================
 # 3. TLS

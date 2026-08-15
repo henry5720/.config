@@ -149,16 +149,23 @@ mkcert henry-desktop.local 100.119.136.27
 tailscale 那層已經擋掉 tailnet 以外的人,code-server 的密碼是第二道。
 
 `.config/code-server/config.yaml.example` 是**範本**,安裝腳本會 cp 一份到
-`~/.config/code-server/config.yaml`。密碼填在 cp 出來的那份,不要填回範本——範本在 git 裡,
-而且這個 repo 是公開的。argon2 hash 一樣不能放,它是可以離線爆的。
+`~/.config/code-server/config.yaml`(順便 `chmod 600`)。密碼填在 cp 出來的那份,不要填回
+範本——範本在 git 裡,而且這個 repo 是公開的。argon2 hash 一樣不能放,它是可以離線爆的。
 
-```bash
-echo -n '你的密碼' | npx argon2-cli -e
-# 把整串貼進 ~/.config/code-server/config.yaml:
-#   hashed-password: $argon2i$v=19$m=4096,t=3,p=1$...
+明碼就夠了。tailscale 已經把非 tailnet 的人全擋在外面,code-server 自己的預設也是明碼
+(第一次啟動會產一組隨機的寫進 config.yaml)。唯一要守的是**別用你其他地方在用的密碼**,
+明碼落在磁碟上,外洩就是直接可用。
+
+```yaml
+# ~/.config/code-server/config.yaml
+password: 你的密碼
 ```
 
-`hashed-password` 優先於 `password`。環境變數 `HASHED_PASSWORD` / `PASSWORD` 又會蓋過設定檔
+想更保險再換 argon2 hash(`echo -n '你的密碼' | npx argon2-cli -e`),`hashed-password`
+優先於 `password`,兩個留一個。兩個都空著的話 code-server 啟動會直接報錯
+(`main.js:152`),不會偷偷放行。
+
+環境變數 `HASHED_PASSWORD` / `PASSWORD` 又會蓋過設定檔
 (code-server 讀完會把它們從 `process.env` 刪掉,不傳給子 process),但**只有你手動在終端機
 前景跑 `code-server` 時才有用**——systemd 起的 service 不經過 shell,讀不到任何 shell rc。
 

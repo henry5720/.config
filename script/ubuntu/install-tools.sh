@@ -64,12 +64,13 @@ install_code_server() {
   else
     echo -e "${GREEN}📄 從範本建立 $dst${NC}"
     cp "$src" "$dst"
+    chmod 600 "$dst"   # 裡面要填明碼密碼
   fi
 
   cat <<'EOF'
 
   設定改 ~/.config/code-server/config.yaml(這份不在 git 裡),密碼也填在那:
-    echo -n '你的密碼' | npx argon2-cli -e     # 產 hash,貼成 hashed-password: 那行
+    把 `# password: 換成你的密碼` 那行取消註解填進去,明碼即可
   啟動:systemctl --user enable --now code-server   (預設只綁 127.0.0.1:8080)
   從別台連進來的五種做法:docs/code-server-remote.md
 EOF

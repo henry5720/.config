@@ -113,11 +113,14 @@ ln -sfn ~/code/dotfiles/ai-agent/AGENTS.md ~/.claude/CLAUDE.md
 symlink 能同步的東西趨近於零;但密碼必須寫進生效的那份,而 symlink 會讓它落在 git 裡。
 
 ```bash
-echo -n '你的密碼' | npx argon2-cli -e     # 產 argon2 hash
-vim ~/.config/code-server/config.yaml     # 加一行 hashed-password: $argon2i$...
+vim ~/.config/code-server/config.yaml     # 取消註解 password: 那行,明碼即可
 systemctl --user enable --now code-server
 sudo loginctl enable-linger "$USER"       # 沒開終端機時也讓它活著
 ```
+
+密碼用明碼就好:外面還有 tailscale 那層,只有 tailnet 裡的裝置連得到,
+code-server 自己的預設也是明碼。腳本會把那份 `chmod 600`。想更保險可以改
+`hashed-password`(argon2),兩行只留一行;都空著的話 code-server 啟動會直接報錯。
 
 預設只綁 `127.0.0.1:8080`、`cert: false`,也就是**假設 TLS 由外層處理**。
 從 pad / 手機連進來有五種做法(ssh tunnel、`tailscale serve`、`tailscale cert`、自簽、mkcert),
