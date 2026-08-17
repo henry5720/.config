@@ -14,7 +14,7 @@
 
 | | 是什麼 | 誰寫的 | 檔案實際在哪 | 怎麼更新 |
 |---|---|---|---|---|
-| **規則** | 你希望 agent 怎麼做事 | **你** | 本 repo `ai-agent/AGENTS.md` | 改完 commit |
+| **規則** | 你希望 agent 怎麼做事 | **你** | 本 repo `home/dot_claude/CLAUDE.md` | 改完 commit |
 | **skill** | 一套做某件事的步驟,用到才載入 | 別人 或 **你** | 別人的在 `~/.agents/skills/`;自己的在寫它的那個 repo | 看來源,見下 |
 | **MCP** | 給 agent 接外部服務的通道 | 別人 | 各 agent 自己的設定檔 | 通常自動抓最新 |
 | **plugin** | Claude 的擴充包(可同時含 skill + MCP + 指令) | 別人 | `~/.claude/plugins/` | Claude 裡打 `/plugin` |
@@ -29,19 +29,20 @@
 解法是**只留一份真的檔案,其他都是捷徑**:
 
 ```
-ai-agent/AGENTS.md                    ← 真的檔案,只有這份要改
+home/dot_claude/CLAUDE.md             ← 真的檔案,只有這份要改
    ↑                    ↑
-   │                    └── .config/opencode/AGENTS.md   (repo 內,clone 就有)
-   └── ~/.claude/CLAUDE.md                               (要手動拉一次)
+   │                    └── ~/.config/opencode/AGENTS.md   (chezmoi 建的 symlink)
+   └── ~/.claude/CLAUDE.md                                 (chezmoi 部署)
 ```
 
 新機器只要跑這一行:
 
 ```bash
-ln -sfn ~/code/dotfiles/ai-agent/AGENTS.md ~/.claude/CLAUDE.md
+# 規則由 chezmoi 部署,不用手動 ln
+chezmoi apply ~/.claude/CLAUDE.md
 ```
 
-之後改 `ai-agent/AGENTS.md`、`git pull`,兩邊同時生效。跟 `.zshrc` 是同一招。
+之後改 `home/dot_claude/CLAUDE.md`、`chezmoi apply`,兩邊同時生效。跟 `.zshrc` 是同一招。
 
 > ⚠️ 原本的 `~/.claude/CLAUDE.md` 如果有內容,上面那行會**直接蓋掉且不留備份**。
 > 先 `cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak`。
@@ -218,8 +219,8 @@ opencode 也有自己的 plugin,寫在 `opencode.json` 的 `plugin` 欄位,由 o
 
 | 想做什麼 | 怎麼做 |
 |---|---|
-| 改 agent 的行為規則 | 改 `ai-agent/AGENTS.md`,commit |
-| 新機器套用規則 | `ln -sfn ~/code/dotfiles/ai-agent/AGENTS.md ~/.claude/CLAUDE.md` |
+| 改 agent 的行為規則 | 改 `home/dot_claude/CLAUDE.md`,commit |
+| 新機器套用規則 | `chezmoi init --apply henry5720`(規則含在裡面) |
 | 看現在裝了哪些 skill | `npx skills@latest list -g` |
 | 裝別人的 skill | `npx skills@latest add <帳號>/<repo>` |
 | 裝沒有 CLI 的 skill | clone 下來,再 `ln -sfn <repo>/skills/<名字> ~/.claude/skills/<名字>` |

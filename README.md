@@ -14,116 +14,108 @@
 
 ## 目錄結構
 
-| 路徑 | 用途 | 詳細 |
-|---|---|---|
-| `.zshrc` | 純 zsh 設定:Powerlevel10k、autosuggestions、syntax-highlighting、nvm、開場 `fastfetch`。 | [↓](#zsh) |
-| `.tmux.conf` + `.config/tmux/` | 高度客製的 tmux:TPM 外掛、狀態列、編號 session 管理,以及大量 AI-agent 自動化腳本。 | [↓](#tmux) |
-| `.ssh/config` | SSH 連線設定:GitHub、Tailscale 節點、Oracle VPS。**不含私鑰**。 | [↓](#ssh-部署) |
-| `.config/nvim/` | 只有 `lua/config/options.lua` 一個片段(剪貼簿處理),**非完整 nvim 設定**。 | [↓](#nvim) |
-| `.config/opencode/` | [opencode](https://opencode.ai) 設定:MCP servers 與外掛,**不含模型供應商**。 | [↓](#opencode) |
-| `.config/code-server/` | code-server 設定**範本**:只綁 `127.0.0.1`,TLS 交給外層。生效的那份留在本機,密碼寫在那,不進 repo。 | [↓](#code-server-部署) |
-| `ai-agent/` | **agent 規則的單一來源** `AGENTS.md`,各家 agent 都 symlink 到它。 | [↓](#ai-agent) |
-| `script/ubuntu/` | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 | [↓](#安裝與部署) |
-| `script/termux/` | Android/Termux 桌面環境腳本(xfce/tablet),與 Ubuntu 無關。 | [↓](#termux) |
-| `wsl/` | Windows 主機側的 WSL2 設定與 portproxy 備忘,**手動使用、非由腳本部署**。 | [↓](#wsl) |
-| `docs/` | 說明文件,見上方[延伸文件](#延伸文件)。 | — |
+`.chezmoiroot` 把 repo 切成兩塊:`home/` 是 chezmoi 的地盤(檔名有前綴規則),其餘 chezmoi 完全看不到。
+
+| 路徑 | 部署到 | 用途 | 詳細 |
+|---|---|---|---|
+| `home/dot_zshrc` | `~/.zshrc` | 純 zsh 設定:Powerlevel10k、autosuggestions、syntax-highlighting、nvm、開場 `fastfetch`。 | [↓](#zsh) |
+| `home/dot_tmux.conf` + `home/dot_config/tmux/` | `~/.tmux.conf` + `~/.config/tmux/` | 高度客製的 tmux:TPM 外掛、狀態列、編號 session 管理,以及大量 AI-agent 自動化腳本。 | [↓](#tmux) |
+| `home/private_dot_ssh/private_config` | `~/.ssh/config`(600) | SSH 連線設定:GitHub、Tailscale 節點、Oracle VPS。**不含私鑰**。 | [↓](#ssh) |
+| `home/dot_claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | **agent 規則的單一來源**,opencode 那邊 symlink 過來。 | [↓](#ai-agent-規則) |
+| `home/dot_config/nvim/` | `~/.config/nvim/` | 只有 `lua/config/options.lua` 一個片段(剪貼簿處理),**非完整 nvim 設定**。 | [↓](#nvim) |
+| `home/dot_config/opencode/` | `~/.config/opencode/` | [opencode](https://opencode.ai) 設定:MCP servers 與外掛,**不含模型供應商**。 | [↓](#opencode) |
+| `home/dot_config/private_code-server/` | `~/.config/code-server/`(600) | code-server 設定 template,密碼由 chezmoi 帶入。 | [↓](#code-server) |
+| `ai-agent/` | — | 兩份 think-mode 對抗式 persona,**手動貼用**,不部署。 | [↓](#ai-agent-規則) |
+| `script/ubuntu/` | — | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 | [↓](#安裝與部署) |
+| `script/termux/` | — | Android/Termux 桌面環境腳本(xfce/tablet),與 Ubuntu 無關。 | [↓](#termux) |
+| `wsl/` | — | Windows 主機側的 WSL2 設定與 portproxy 備忘,**手動使用**。 | [↓](#wsl) |
+| `docs/` | — | 說明文件,見上方[延伸文件](#延伸文件)。 | — |
 
 ## 安裝與部署
 
-先 clone 到 `~/code/dotfiles`,再擇一執行:
+家目錄的設定檔由 [chezmoi](https://www.chezmoi.io) 部署,新機器一行:
 
 ```bash
-# 一鍵:基底 + 工具選單
-bash script/ubuntu/setup.sh
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply henry5720
+```
 
-# 或分開跑
-bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + 插件 + .zshrc + 預設 shell
+這行做三件事:裝 chezmoi、clone 本 repo 到 `~/.local/share/chezmoi`、把 `home/` 底下的設定檔部署到家目錄。過程中會問一次 code-server 密碼(見[秘密](#秘密))。
+
+套件安裝是另一條線,chezmoi 不管:
+
+```bash
+cd "$(chezmoi source-path)/.."
+bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + zsh 插件 + 預設 shell
 bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / btop / nvm / code-server
 ```
 
-工具選單:空格分隔多選(例 `1 3`),直接 Enter = 全裝。
+工具選單:空格分隔多選(例 `1 3`),直接 Enter = 全裝。兩者順序無所謂——`.zshrc` 對插件缺檔有防呆。
 
-腳本處理 zsh 那條線和工具選單(含 code-server 的設定檔部署)。**ssh 與 AI agent 要手動各跑一次**,見下面幾節。
+### 日常操作
 
-### zshrc 部署
+| 想做的事 | 指令 |
+|---|---|
+| 改某個設定檔 | `chezmoi edit --apply ~/.zshrc` |
+| 進 repo 目錄 | `chezmoi cd` |
+| 別台改過、這台要同步 | `chezmoi update`(= pull + apply) |
+| 看有什麼還沒套用 | `chezmoi diff` |
+| 把本機的手動修改收回 repo | `chezmoi re-add` |
+| 改密碼之類的秘密 | `chezmoi edit-config` 後 `chezmoi apply` |
 
-`install-base.sh` 會把 `~/.zshrc` 建成指向本 repo 的 **symlink**:
+> ⚠️ 直接編輯 `~/.zshrc` 這種**已部署的檔案不會回到 repo**,下次 `chezmoi apply` 還會被蓋掉。
+> 要嘛用 `chezmoi edit`,要嘛改完立刻 `chezmoi re-add`。這是從 symlink 換成 chezmoi 之後
+> 唯一真正要改的習慣。
 
-```bash
-ls -la ~/.zshrc      # 應顯示 ~/.zshrc -> ~/code/dotfiles/.zshrc
-```
+### 檔名前綴
 
-好處:改 repo 的 `.zshrc`,`git pull` 後立刻生效。若原本已有 `~/.zshrc`,會先備份(通常為 `~/.zshrc.bak`)。
+`home/` 底下的檔名有規則,對應到部署後的樣子:
 
-反安裝(還原原本設定):
+| 前綴 / 後綴 | 意思 |
+|---|---|
+| `dot_` | 部署成 `.` 開頭 |
+| `private_` | 權限收成 600(目錄 700) |
+| `executable_` | 部署後帶 +x |
+| `symlink_` | 部署成 symlink,檔案內容就是連結目標 |
+| `.tmpl` | 先跑 Go template 再部署 |
 
-```bash
-rm ~/.zshrc && mv ~/.zshrc.bak ~/.zshrc
-```
+### 秘密
 
-### ssh 部署
+repo 是公開的,秘密一律不進 git。目前只有一個:code-server 密碼。
 
-`.ssh/config` 不由 `install-base.sh` 部署,需手動擇一。**先決條件**:三種方式都需要私鑰
-`~/.ssh/henry5720`(config 內所有 Host 的 `IdentityFile`,**未附於 repo**),放好後設權限
-`chmod 600 ~/.ssh/henry5720`,否則所有連線失敗。
+`chezmoi init` 時問一次,存在 `~/.config/chezmoi/chezmoi.toml`(**不在 repo**),由
+`home/dot_config/private_code-server/private_config.yaml.tmpl` 的 `{{ .codeServerPassword }}` 帶入。
 
-擇一(由鬆到緊):
+### ssh
 
-```bash
-# 方式 A|Include(推薦):repo 管共用,本機仍可疊加自己的 Host,pull 即生效
-#   把 Include 放在最上面(prepend)。用暫存檔避免讀寫同檔清空原內容。
-{ echo 'Include ~/code/dotfiles/.ssh/config'; cat ~/.ssh/config 2>/dev/null; } > ~/.ssh/config.new \
-  && mv ~/.ssh/config.new ~/.ssh/config
+`~/.ssh/config` 由 chezmoi 部署,權限自動收成 `~/.ssh` 700 / `config` 600,不必手動 `chmod`。
 
-# 方式 B|symlink:pull 即生效,但整份被 repo 獨佔、無法再放機器特定設定,且覆蓋既有檔
-mv ~/.ssh/config ~/.ssh/config.bak 2>/dev/null; ln -s ~/code/dotfiles/.ssh/config ~/.ssh/config
+**先決條件**:私鑰 `~/.ssh/henry5720`(config 內所有 Host 的 `IdentityFile`,**未附於 repo**)
+要自己放好並 `chmod 600`,否則所有連線失敗。
 
-# 方式 C|copy:完全自主可任意改,但 pull 後不會生效、需手動重 copy,易與 repo drift
-cp ~/code/dotfiles/.ssh/config ~/.ssh/config
-```
+> 原本 README 列的 Include / symlink / copy 三種部署方式已取消——chezmoi 統一走一種。
+> 若某台機器需要額外的本機 Host,在 `home/private_dot_ssh/private_config` 加 template 條件,
+> 不要在家目錄直接改(會被下次 apply 蓋掉)。
 
-`chmod 700 ~/.ssh` 收斂目錄權限。三種方式的差異就是「同步 vs 自主」的取捨:A 兩者兼顧、
-B 全同步無自主、C 全自主無同步。
+### AI agent 規則
 
-> ssh 對多數選項是 **first-match-wins**。方式 A 把 `Include` 放最上面 → repo 設定優先;
-> 若某台想用本機值蓋掉 repo 的同名 Host,改把 `Include` 放檔案**最後**即可。
-
-### AI agent 部署
+規則本體是 `home/dot_claude/CLAUDE.md`,部署成 `~/.claude/CLAUDE.md`。
+opencode 那邊的 `~/.config/opencode/AGENTS.md` 是 chezmoi 建的 symlink 指過去,**不用手動 `ln`**。
 
 本 repo 只管**規則**;skill、MCP、plugin 是訂閱來的,不進本 repo。
 四者的差別、各自怎麼裝與更新,見 [`docs/ai-agent-setup.md`](docs/ai-agent-setup.md)。
 
-新機器只要跑這一行:
+### code-server
+
+`install-tools.sh` 的選單裡選 `code-server` 會用官方腳本裝 binary;設定檔由 chezmoi 部署,
+密碼見[秘密](#秘密)。
 
 ```bash
-# Claude Code 只讀 CLAUDE.md,不讀 AGENTS.md,所以要換名字
-ln -sfn ~/code/dotfiles/ai-agent/AGENTS.md ~/.claude/CLAUDE.md
-```
-
-`.config/opencode/AGENTS.md` 是 repo 內的 relative symlink,clone 下來就生效。
-
-> ⚠️ 原本的 `~/.claude/CLAUDE.md` 如果有內容,`ln -sfn` 會**直接蓋掉且不留備份**,先自行 `cp`。
-
-### code-server 部署
-
-在 `install-tools.sh` 的選單裡選 `code-server` 就會一次做完兩件事:用官方安裝腳本裝 binary、
-把 `config.yaml.example` **cp** 成 `~/.config/code-server/config.yaml`(已存在就不覆蓋)。
-
-這裡刻意用 cp 而不是 symlink。範本裡實際生效的只有四行,其中三行還是 code-server 的預設值,
-symlink 能同步的東西趨近於零;但密碼必須寫進生效的那份,而 symlink 會讓它落在 git 裡。
-
-```bash
-vim ~/.config/code-server/config.yaml     # 取消註解 password: 那行,明碼即可
-code-server                               # 要用的時候再開,丟 tmux 裡
+code-server     # 要用的時候再開,丟 tmux 裡
 ```
 
 要它一直在(重開機自動起、沒開終端機也活著)才需要 systemd,
 `systemctl --user enable --now code-server` 加 `sudo loginctl enable-linger "$USER"`。
 手動開就用不到——WSL 反正重開機也不會自己起來。
-
-密碼用明碼就好:外面還有 tailscale 那層,只有 tailnet 裡的裝置連得到,
-code-server 自己的預設也是明碼。腳本會把那份 `chmod 600`。想更保險可以改
-`hashed-password`(argon2),兩行只留一行;都空著的話 code-server 啟動會直接報錯。
 
 預設只綁 `127.0.0.1:8080`、`cert: false`,也就是**假設 TLS 由外層處理**。
 從 pad / 手機連進來有五種做法(ssh tunnel、`tailscale serve`、`tailscale cert`、自簽、mkcert),
@@ -166,11 +158,11 @@ git show <commit>:.config/opencode/opencode.json
 **沒有 `superpowers` 外掛**:別人的 skill 不用 opencode plugin 這條路裝,理由和裝法見
 [`docs/ai-agent-setup.md`](docs/ai-agent-setup.md)。
 
-`.config/opencode/AGENTS.md` 是指向 `../../ai-agent/AGENTS.md` 的 symlink。
+`~/.config/opencode/AGENTS.md` 是 chezmoi 建的 symlink,指向 `~/.claude/CLAUDE.md`。
 
 ### ai-agent
 
-`ai-agent/AGENTS.md` —— 跨 repo、跨 agent 的**規則單一來源**。刻意只寫「換到任何一個 repo
+規則本體已搬到 `home/dot_claude/CLAUDE.md` —— 跨 repo、跨 agent 的**規則單一來源**。刻意只寫「換到任何一個 repo
 都還成立」的事:語言、白話、回覆方式、誠實。
 
 想加規則之前先過這張表:
@@ -200,7 +192,7 @@ git show <commit>:.config/opencode/opencode.json
 
 註解樣式看檔案是哪一種,兩種不要互相看齊:
 
-- **設定檔**(`.zshrc`、`.ssh/config`、`.config/code-server/config.yaml.example`)——一堆彼此無關的
+- **設定檔**(`.zshrc`、`.ssh/config`、`home/dot_config/private_code-server/private_config.yaml.tmpl`)——一堆彼此無關的
   設定並排、會跳著找,用 `# ===` 橫幅 + 編號當目錄。
 - **流程腳本**(`script/ubuntu/*.sh`)——從上到下跑一次、步驟有先後,用純 `# 1.` `# 2.` 編號。
   橫幅會讓步驟看起來像可以各自獨立看的模組,但順序就是全部。
@@ -221,6 +213,6 @@ git show <commit>:.config/opencode/opencode.json
 1. `script/termux/startxfce_proot.sh` **寫死使用者名稱 `henry`**(`su - henry`)。
 2. tmux 的 agent 整合依賴**未附的私有 binary** `~/.config/agent-tracker/bin/agent` 及其 `~/.config/agent-tracker/`、`~/.cache/agent/` 狀態檔;缺了功能降級但不致命。
 3. `.config/opencode/opencode.json` **沒有設定任何模型供應商**,clone 下來要自己 `opencode auth login`。
-4. `ai-agent/AGENTS.md` 是 henry 的**個人回覆偏好**(繁中、白話),fork 前請整份換掉。
-5. `.ssh/config` 內的 Host 與 `IdentityFile` 是 henry 的,fork 後整份替換。
+4. `home/dot_claude/CLAUDE.md` 是 henry 的**個人回覆偏好**(繁中、白話),fork 前請整份換掉。
+5. `home/private_dot_ssh/private_config` 內的 Host 與 `IdentityFile` 是 henry 的,fork 後整份替換。
 6. `wsl/` 內含範例 IP,且需手動複製到 Windows 端。

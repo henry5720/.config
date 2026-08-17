@@ -50,7 +50,7 @@ repo 最大的資產(tmux 那套)在這台從未部署。**這代表遷移的驗
 | repo 結構 | `.chezmoiroot` = `home` | 社群標準做法。repo 根可續留 README/script/docs,chezmoi 不會把它們當 dotfile |
 | repo 位置 | 搬到 `~/.local/share/chezmoi` | chezmoi 作者於遷移討論中的建議,亦為主流。一行 bootstrap 建立在預設位置上 |
 | 生效方式 | 全面 `chezmoi apply`,不保留 symlink | 混合模型會留下「哪個檔走哪條路」的記憶負擔,正是本次要消滅的東西 |
-| 衝突檔 | 三個皆以 repo 為準 | repo 版較新且已清掉失效的 TeamSync provider |
+| 衝突檔 | 四個皆以 repo 為準 | repo 版較新且已清掉失效的 TeamSync provider |
 | 規則本體位置 | `home/dot_claude/CLAUDE.md` | 本體須在 home 樹內才會被部署;`~/.claude/` 已存在,不必新開目錄 |
 
 ## 目標結構
@@ -111,13 +111,16 @@ symlink 的來源檔必須是 template,因為 symlink 目標不會展開 `~`:
 
 現行的 `config.yaml.example` + `.gitignore` 擋 `config.yaml` + 手動編輯這三步,一併取代。
 
-## 三個衝突檔的處理
+## 四個衝突檔的處理
 
 | 檔案 | 動作 | 副作用 |
 |---|---|---|
 | `~/.zshrc` | repo 版覆蓋 | 註解掉的 TeamSync key 消失。對應 provider 已於 `efcc09d` 判定失效,屬死碼 |
 | `~/.claude/CLAUDE.md` | repo 的繁中「個人偏好」覆蓋 | **Claude Code 全域行為改變**。原本那份英文 "Behavioral guidelines" 不再生效 |
 | `~/.config/opencode/opencode.json` | repo 版覆蓋 | TeamSync provider 與明碼 apiKey 從機器清掉。要重用需 `opencode auth login` |
+| `~/.config/opencode/AGENTS.md` | repo 版覆蓋(改為 symlink) | 機器上那份 158 行的獨立規則文件被刪除,repo 內從未存在,已備份於 `~/.dotfiles-pre-chezmoi-backup/` |
+
+第四項是執行到 Task 5 的閘門才發現的(spec 撰寫當下漏算)。使用者裁示:都以 dotfile 為準,機器上舊的砍掉。
 
 `~/.config/opencode/` 底下的 `agents/`、`commands/`、`node_modules/` 不受影響——chezmoi 只管它認識的檔。
 
@@ -129,7 +132,7 @@ symlink 的來源檔必須是 template,因為 symlink 目標不會展開 `~`:
 3. 改 install-base.sh(拿掉 .zshrc symlink 那節)
 4. 裝 chezmoi;init --source 指到現在的 repo 路徑,不 apply
 5. chezmoi diff                          ← 關鍵閘門
-6. 備份三個衝突檔;chezmoi apply
+6. 備份四個衝突檔;chezmoi apply
 7. repo 搬到 ~/.local/share/chezmoi
 8. 重寫 README 與 docs/ai-agent-setup.md
 ```
@@ -159,15 +162,17 @@ symlink 的來源檔必須是 template,因為 symlink 目標不會展開 `~`:
 第 5 步的閘門:
 
 ```bash
-chezmoi diff --format=git | grep -E '^(---|\+\+\+)' | sort -u
+chezmoi status | awk '{print $2}' | sort -u
 ```
 
-預期清單 = 新增 tmux 那批 + nvim + fontconfig + ssh config + code-server config + 覆蓋三個衝突檔。逐項核對,出現意料外的項目就停下。
+`chezmoi status` 每行的狀態碼分兩欄,行首是第一欄(這台目前都是空白);要核對的檔案清單在第二欄,`awk '{print $2}'` 正是取第二欄。
+
+預期清單 = 新增 tmux 那批 + nvim + fontconfig + ssh config + code-server config + 覆蓋四個衝突檔。逐項核對,出現意料外的項目就停下。
 
 第 6 步 apply 後:
 
 ```bash
-zsh -ic 'exit' && echo SHELL_OK
+env -i HOME="$HOME" TERM=dumb /bin/zsh -lic 'echo $PATH' | tr ':' '\n' | grep -E '\.local/bin|\.opencode/bin'
 tmux new -d -s _v && tmux kill-session -t _v && echo TMUX_OK
 stat -c '%a' ~/.ssh ~/.ssh/config              # 應為 700 / 600
 readlink ~/.config/opencode/AGENTS.md          # 應為 ~/.claude/CLAUDE.md
@@ -186,7 +191,7 @@ chezmoi verify && echo VERIFY_OK
 
 | 風險 | 緩解 |
 |---|---|
-| apply 覆蓋掉機器上還在用的東西 | 第 5 步逐項核對 diff;第 0 步先備份三個衝突檔 |
+| apply 覆蓋掉機器上還在用的東西 | 第 5 步逐項核對 diff;第 6 步先備份四個衝突檔 |
 | tmux 設定第一次落地就出錯 | 這台本來就沒有 tmux 設定,失敗不會比現況更差;驗收含 tmux 開得起來 |
 | 換掉 `~/.claude/CLAUDE.md` 後 agent 行為變化 | 已知並接受;備份留著,不滿意可還原 |
 | repo 搬家後找不到 | `chezmoi cd` / `chezmoi source-path`;README 寫明 |
