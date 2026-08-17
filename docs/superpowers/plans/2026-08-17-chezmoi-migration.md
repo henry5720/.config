@@ -358,7 +358,8 @@ grep -c 'zshrc'  script/ubuntu/install-base.sh    # 預期:0
 grep -n '^# [0-9]\.' script/ubuntu/install-base.sh  # 預期:1. 2. 3. 連號無跳號
 ```
 
-`install-tools.sh` 的 `REPO_DIR` **不要動**——它還要用來找 code-server 範本,那支這次不改。
+`install-tools.sh` 的 code-server 設定檔部署邏輯(cp 範本那段)一併移除,改由 chezmoi
+負責;`REPO_DIR` 是否保留依剩餘引用而定——若移除後變成孤兒就一併刪掉。
 
 - [ ] **Step 6: 驗收——冪等邏輯仍完整**
 
