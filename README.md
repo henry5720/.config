@@ -24,7 +24,7 @@
 | `home/dot_claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | **agent 規則的單一來源**,opencode 那邊 symlink 過來。 | [↓](#ai-agent-規則) |
 | `home/dot_config/nvim/` | `~/.config/nvim/` | 只有 `lua/config/options.lua` 一個片段(剪貼簿處理),**非完整 nvim 設定**。 | [↓](#nvim) |
 | `home/dot_config/opencode/` | `~/.config/opencode/` | [opencode](https://opencode.ai) 設定:MCP servers 與外掛,**不含模型供應商**。 | [↓](#opencode) |
-| `home/dot_config/private_code-server/` | `~/.config/code-server/`(600) | code-server 設定 template,密碼由 chezmoi 帶入。 | [↓](#code-server) |
+| `home/dot_config/private_code-server/` | `~/.config/code-server/`(目錄 700 / 檔案 600) | code-server 設定 template,密碼由 chezmoi 帶入。 | [↓](#code-server) |
 | `ai-agent/` | — | 兩份 think-mode 對抗式 persona,**手動貼用**,不部署。 | [↓](#ai-agent-規則) |
 | `script/ubuntu/` | — | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 | [↓](#安裝與部署) |
 | `script/termux/` | — | Android/Termux 桌面環境腳本(xfce/tablet),與 Ubuntu 無關。 | [↓](#termux) |
@@ -36,20 +36,30 @@
 家目錄的設定檔由 [chezmoi](https://www.chezmoi.io) 部署,新機器一行:
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply henry5720
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" init --apply henry5720
 ```
 
+`-b "$HOME/.local/bin"` 不能省——安裝腳本預設把 binary 裝到**相對路徑** `./bin`(當前目錄下),
+不帶這個參數的話 chezmoi 會裝到執行當下的 `$PWD/bin`,不在任何 PATH 裡,下一步就
+`chezmoi: command not found`。
+
 這行做三件事:裝 chezmoi、clone 本 repo 到 `~/.local/share/chezmoi`、把 `home/` 底下的設定檔部署到家目錄。過程中會問一次 code-server 密碼(見[秘密](#秘密))。
+
+> ⚠️ 這台機器如果**已經在用**(已有 `~/.zshrc`、`~/.config/opencode/` 等既有設定),
+> `chezmoi init --apply` 會**直接覆蓋且不留備份**。先自行備份想留的檔案再跑這行。
 
 套件安裝是另一條線,chezmoi 不管:
 
 ```bash
-cd "$(chezmoi source-path)/.."
+cd ~/.local/share/chezmoi
 bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + zsh 插件 + 預設 shell
 bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / btop / nvm / code-server
 ```
 
 工具選單:空格分隔多選(例 `1 3`),直接 Enter = 全裝。兩者順序無所謂——`.zshrc` 對插件缺檔有防呆。
+
+`.tmux.conf` 依賴的 TPM / tmux / `jq` / `fzf` 不在上面兩支腳本的安裝範圍內,要自己裝,
+見[依賴一覽](#依賴一覽)。
 
 ### 日常操作
 

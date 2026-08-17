@@ -477,26 +477,26 @@ chezmoi status | awk '{print $2}' | sort -u
 - `.config/nvim/lua/config/options.lua`
 - `.config/fontconfig/fonts.conf`
 - `.config/code-server/config.yaml`
-- `.config/opencode/AGENTS.md`(symlink)
 
-**B. 覆蓋既有(spec 已決定以 repo 為準)**——正好 3 項
+**B. 覆蓋既有(spec 已決定以 repo 為準)**——正好 4 項
 
 - `.zshrc`
 - `.claude/CLAUDE.md`
 - `.config/opencode/opencode.json`
+- `.config/opencode/AGENTS.md`(改為 symlink,機器上原本是獨立檔案)
 
 **C. 無變更**——`.ssh/config` 應**不出現**在清單裡(它跟 repo 已經一致)。
 
-- [ ] **Step 3: 確認 B 類正好三項,沒有第四個**
+- [ ] **Step 3: 確認 B 類正好四項**
 
 ```bash
-for f in .zshrc .claude/CLAUDE.md .config/opencode/opencode.json; do
+for f in .zshrc .claude/CLAUDE.md .config/opencode/opencode.json .config/opencode/AGENTS.md; do
   test -e "$HOME/$f" && echo "既有: $f"
 done
 chezmoi status | awk '{ if (substr($0,2,1) == "M") print substr($0,4) }' | sort -u
 ```
 
-`substr($0,2,1)` 直接取每行第二個字元(即第二欄的狀態碼),不靠 `grep '^M'` 錨定行首——那樣行不通,因為每行實際上以第一欄(這台目前都是空白)開頭,`M`/`A` 是第二個字元,`grep '^M'` 永遠對不上,會安靜印出空結果。第二欄是 `M` 的那些行就是「既有檔案將被覆蓋」的清單(見 Step 1 的兩欄說明)。這份清單必須**正好**是那三個。多出任何一項就停下來問人——那代表有這台機器上還在用、而 spec 沒討論過的檔案要被蓋掉。
+`substr($0,2,1)` 直接取每行第二個字元(即第二欄的狀態碼),不靠 `grep '^M'` 錨定行首——那樣行不通,因為每行實際上以第一欄(這台目前都是空白)開頭,`M`/`A` 是第二個字元,`grep '^M'` 永遠對不上,會安靜印出空結果。第二欄是 `M` 的那些行就是「既有檔案將被覆蓋」的清單(見 Step 1 的兩欄說明)。這份清單必須**正好**是那四個。多出任何一項就停下來問人——那代表有這台機器上還在用、而 spec 沒討論過的檔案要被蓋掉。
 
 - [ ] **Step 4: 確認 ssh config 不受影響**
 
@@ -532,7 +532,7 @@ chezmoi cat ~/.config/code-server/config.yaml | grep '^password:'
 
 **這是第一個不可逆的 Task。** 先備份再 apply。
 
-- [ ] **Step 1: 備份三個會被覆蓋的檔**
+- [ ] **Step 1: 備份四個會被覆蓋的檔**
 
 ```bash
 B="$HOME/.dotfiles-pre-chezmoi-backup"
@@ -540,21 +540,22 @@ mkdir -p "$B/.claude" "$B/.config/opencode"
 cp -a "$HOME/.zshrc"                          "$B/.zshrc"
 cp -a "$HOME/.claude/CLAUDE.md"               "$B/.claude/CLAUDE.md"
 cp -a "$HOME/.config/opencode/opencode.json"  "$B/.config/opencode/opencode.json"
+cp -a "$HOME/.config/opencode/AGENTS.md"      "$B/.config/opencode/AGENTS.md"
 find "$B" -type f | sort
 ```
 
-預期看到三個檔。
+預期看到四個檔。
 
 - [ ] **Step 2: 驗收——備份可讀且非空**
 
 ```bash
 B="$HOME/.dotfiles-pre-chezmoi-backup"
-for f in .zshrc .claude/CLAUDE.md .config/opencode/opencode.json; do
+for f in .zshrc .claude/CLAUDE.md .config/opencode/opencode.json .config/opencode/AGENTS.md; do
   test -s "$B/$f" && echo "OK $f" || echo "FAIL $f"
 done
 ```
 
-三行都要 `OK`。有任何 `FAIL` 就停下來。
+四行都要 `OK`。有任何 `FAIL` 就停下來。
 
 - [ ] **Step 3: apply**
 
@@ -565,11 +566,13 @@ chezmoi apply
 - [ ] **Step 4: 驗收——shell 與 tmux**
 
 ```bash
-zsh -ic 'exit' && echo SHELL_OK
+env -i HOME="$HOME" TERM=dumb /bin/zsh -lic 'echo $PATH' | tr ':' '\n' | grep -E '\.local/bin|\.opencode/bin'
 tmux new -d -s _verify && tmux kill-session -t _verify && echo TMUX_OK
 ```
 
-兩行都要印出來。`zsh -ic` 會完整跑一次 `.zshrc`,插件缺檔不該噴錯(`.zshrc` 對每個 source 都有防呆)。
+`.zshrc` 結尾的 `command -v fastfetch && fastfetch` 會讓「互動式 zsh 執行後立刻 exit」的
+結束碼呈現非零,不能拿來當驗收條件;改用乾淨環境跑一次 `.zshrc` 後檢查 PATH 是否含
+`~/.local/bin`、`~/.opencode/bin` 兩個目錄,兩行都要印出來才算過。
 
 - [ ] **Step 5: 驗收——權限與 symlink**
 
@@ -717,7 +720,7 @@ git 歷史應完整保留。
 家目錄的設定檔由 [chezmoi](https://www.chezmoi.io) 部署,新機器一行:
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply henry5720
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" init --apply henry5720
 ```
 
 這行做三件事:裝 chezmoi、clone 本 repo 到 `~/.local/share/chezmoi`、把 `home/` 底下的設定檔部署到家目錄。過程中會問一次 code-server 密碼(見[秘密](#秘密))。
@@ -725,7 +728,7 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply henry5720
 套件安裝是另一條線,chezmoi 不管:
 
 ```bash
-cd "$(chezmoi source-path)/.."
+cd ~/.local/share/chezmoi
 bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + zsh 插件 + 預設 shell
 bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / btop / nvm / code-server
 ```
@@ -888,7 +891,7 @@ chezmoi doctor                  # 無 ERROR
 chezmoi verify && echo OK       # 家目錄與來源一致
 chezmoi status                  # 無輸出
 git status --short              # 無輸出
-zsh -ic 'exit' && echo SHELL_OK
+env -i HOME="$HOME" TERM=dumb /bin/zsh -lic 'echo $PATH' | tr ':' '\n' | grep -E '\.local/bin|\.opencode/bin'
 tmux new -d -s _f && tmux kill-session -t _f && echo TMUX_OK
 ```
 

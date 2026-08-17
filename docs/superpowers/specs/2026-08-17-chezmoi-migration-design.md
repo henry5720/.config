@@ -7,7 +7,7 @@
 把家目錄設定檔的部署從「四種各自為政的機制」收斂成單一的 `chezmoi apply`,並讓新機器可以一行 bootstrap。
 
 - **單一部署機制**:取代現行的 zshrc symlink、ssh 三選一、CLAUDE.md 手動 `ln`、code-server `cp` 範本。
-- **一行 bootstrap**:新機器 `sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply henry5720` 即完成所有 dotfile 部署。
+- **一行 bootstrap**:新機器 `sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" init --apply henry5720` 即完成所有 dotfile 部署。
 - **秘密不進公開 repo**:code-server 密碼改由 `chezmoi init` 互動詢問一次,存在 repo 外。
 - **權限自動化**:`~/.ssh` 700 / `config` 600 由 chezmoi 前綴保證,不再靠人手 `chmod`。
 - **非家目錄內容不受影響**:`script/`、`docs/`、`wsl/`、`README.md` 維持原狀,chezmoi 看不到。
