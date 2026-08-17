@@ -165,7 +165,13 @@ symlink 的來源檔必須是 template,因為 symlink 目標不會展開 `~`:
 chezmoi status | awk '{print $2}' | sort -u
 ```
 
-`chezmoi status` 每行的狀態碼分兩欄,行首是第一欄(這台目前都是空白);要核對的檔案清單在第二欄,`awk '{print $2}'` 正是取第二欄。
+`chezmoi status` 每行開頭是兩個字元的狀態碼:第一欄是來源狀態的變化,第二欄是目的端
+(家目錄)相對目標狀態的變化(`M` = 既有檔案將被覆蓋,`A` = 新增,這台原本沒有)。
+這台第一欄目前都是空白,所以整行印出來是「一個空格 + 一個狀態字母 + 路徑」,例如
+` M .claude/CLAUDE.md`。`awk` 預設以空白切欄位、且會吃掉開頭空白,所以 `$1` 拿到的其實
+是那個狀態字母,`$2` 才是路徑——**不是**狀態碼的第二欄,這裡跟計畫檔
+(`docs/superpowers/plans/2026-08-17-chezmoi-migration.md` Task 5 Step 1)是同一套說法。
+這裡刻意**不**過濾 `A`/`M`,因為要核對的是「新增 + 覆蓋」的合併清單,兩種都要看。
 
 預期清單 = 新增 tmux 那批 + nvim + fontconfig + ssh config + code-server config + 覆蓋四個衝突檔。逐項核對,出現意料外的項目就停下。
 

@@ -35,7 +35,13 @@ home/dot_claude/CLAUDE.md             ← 真的檔案,只有這份要改
    └── ~/.claude/CLAUDE.md                                 (chezmoi 部署)
 ```
 
-新機器只要跑這一行:
+新機器不用為規則另外做事——`chezmoi init --apply`(見 README〈安裝與部署〉)本身就含
+這份規則,會直接部署好 `~/.claude/CLAUDE.md`。
+
+> ⚠️ 若這台機器原本已有 `~/.claude/CLAUDE.md` 且有內容,`chezmoi init --apply` 會
+> **直接蓋掉且不留備份**。先 `cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak`。
+
+已經 `chezmoi init` 過的機器,想單獨重新套用規則(例如剛 `git pull` 完):
 
 ```bash
 # 規則由 chezmoi 部署,不用手動 ln
@@ -43,9 +49,6 @@ chezmoi apply ~/.claude/CLAUDE.md
 ```
 
 之後改 `home/dot_claude/CLAUDE.md`、`chezmoi apply`,兩邊同時生效。跟 `.zshrc` 是同一招。
-
-> ⚠️ 原本的 `~/.claude/CLAUDE.md` 如果有內容,上面那行會**直接蓋掉且不留備份**。
-> 先 `cp ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak`。
 
 ## 規則要寫什麼
 
