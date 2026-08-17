@@ -124,20 +124,23 @@ symlink 的來源檔必須是 template,因為 symlink 目標不會展開 `~`:
 ## 遷移步驟
 
 ```
-0. 開 branch;備份 home 三個衝突檔
-1. 建 .chezmoiroot;git mv 家目錄檔進 home/ 並加前綴
-2. 32 個可執行檔加 executable_ 前綴
-3. code-server 範本改 .tmpl;寫 .chezmoi.toml.tmpl
-4. 裝 chezmoi;init --source 指到現在的 repo 路徑
+1. 建 .chezmoiroot;git mv 家目錄檔進 home/ 並加前綴(含 executable_)
+2. code-server 範本改 .tmpl;寫 .chezmoi.toml.tmpl;opencode symlink 改 template
+3. 改 install-base.sh(拿掉 .zshrc symlink 那節)
+4. 裝 chezmoi;init --source 指到現在的 repo 路徑,不 apply
 5. chezmoi diff                          ← 關鍵閘門
-6. chezmoi apply
+6. 備份三個衝突檔;chezmoi apply
 7. repo 搬到 ~/.local/share/chezmoi
-8. 改 install-base.sh;重寫 README 部署章節
+8. 重寫 README 與 docs/ai-agent-setup.md
 ```
 
-第 1-4 步都不碰家目錄,可隨時 `git checkout` 回頭。**第 5 步之前不做任何不可逆的事。**
+第 1-5 步都不碰家目錄,可隨時 `git checkout` 回頭。**第 6 步之前不做任何不可逆的事。**
+
+`install-base.sh` 排在第 3 步而非最後,是因為它只改 repo、不碰家目錄,歸在「可回頭」那半邊比較安全。它與第 6 步之間有個空窗:腳本已不再部署 `.zshrc`,而 chezmoi 還沒 apply。這在本機無影響(`~/.zshrc` 已是實體檔),但**空窗期內不要拿這個 branch 去裝新機器**。
 
 第 4 步先讓 chezmoi 就地指向現在的 `~/code/dotfiles`(`~/.config/chezmoi/chezmoi.toml` 的 `sourceDir`),確認 diff/apply 都對之後,第 7 步才搬到預設位置並**移除** `sourceDir` 設定(用預設值)。先驗證再搬家,搬家出錯不會牽連前面的驗收。
+
+實作細節見 `docs/superpowers/plans/2026-08-17-chezmoi-migration.md`。
 
 ### 第 8 步的具體改動
 
