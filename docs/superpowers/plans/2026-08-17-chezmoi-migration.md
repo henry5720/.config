@@ -459,8 +459,10 @@ git status --short --ignored | grep -i chezmoi.toml   # 預期:無輸出
 - [ ] **Step 1: 產生受影響檔案清單**
 
 ```bash
-chezmoi diff --format=git | grep -E '^(---|\+\+\+) ' | sed 's|^[-+]* [ab]/||' | sort -u
+chezmoi status | awk '{print $2}' | sort -u
 ```
+
+`chezmoi status` 每行開頭的字母是狀態碼:`M` 代表該檔案已存在,apply 後會被修改(覆蓋);`A` 代表新增,這台原本沒有這個檔案。
 
 - [ ] **Step 2: 逐項核對**
 
@@ -489,16 +491,15 @@ chezmoi diff --format=git | grep -E '^(---|\+\+\+) ' | sed 's|^[-+]* [ab]/||' | 
 for f in .zshrc .claude/CLAUDE.md .config/opencode/opencode.json; do
   test -e "$HOME/$f" && echo "既有: $f"
 done
-chezmoi diff --format=git | grep -E '^(---|\+\+\+) ' | sed 's|^[-+]* [ab]/||' | sort -u \
-  | while read -r f; do test -e "$HOME/$f" && echo "將覆蓋: $f"; done
+chezmoi status | grep '^M' | awk '{print $2}' | sort -u
 ```
 
-「將覆蓋」的清單必須**正好**是那三個。多出任何一項就停下來問人——那代表有這台機器上還在用、而 spec 沒討論過的檔案要被蓋掉。
+`chezmoi status` 裡 `M` 開頭的那些行本身就是「既有檔案將被覆蓋」的清單(見 Step 1 的說明)。這份清單必須**正好**是那三個。多出任何一項就停下來問人——那代表有這台機器上還在用、而 spec 沒討論過的檔案要被蓋掉。
 
 - [ ] **Step 4: 確認 ssh config 不受影響**
 
 ```bash
-chezmoi diff --format=git | grep -c 'ssh/config'    # 預期:0
+chezmoi status | grep -c 'ssh/config'    # 預期:0
 ```
 
 若不是 0,表示 `private_dot_ssh` 讓 chezmoi 認為權限要改。檢查 `stat -c '%a' ~/.ssh ~/.ssh/config`——若本來就是 700/600 則不該有 diff;若不是,那這個 diff 是**正確的**(chezmoi 要來修權限),放行。
