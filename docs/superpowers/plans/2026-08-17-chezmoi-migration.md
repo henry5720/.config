@@ -462,7 +462,9 @@ git status --short --ignored | grep -i chezmoi.toml   # 預期:無輸出
 chezmoi status | awk '{print $2}' | sort -u
 ```
 
-`chezmoi status` 每行開頭的字母是狀態碼:`M` 代表該檔案已存在,apply 後會被修改(覆蓋);`A` 代表新增,這台原本沒有這個檔案。
+`chezmoi status` 每行開頭是兩個字元的狀態碼,不是一個:第一欄是「來源狀態相對於 chezmoi 上次寫入的變化」,第二欄是「目的端(家目錄)相對於目標狀態的變化」。這裡要看的是**第二欄**:`M` 代表該檔案已存在,apply 後會被修改(覆蓋);`A` 代表新增,這台原本沒有這個檔案。第一欄目前這台都是空白,所以兩欄印出來像「一個空格 + 一個字母」,例如 ` M .claude/CLAUDE.md`。
+
+`awk '{print $2}'` 這裡能正確取到檔名,是因為 awk 預設以空白切欄位、且會吃掉開頭的空白——所以 `$1` 拿到的其實是第二欄那個字母,`$2` 才是路徑。這個行為**只在第一欄是空白時成立**;若第一欄也非空白(兩欄黏在一起,像 `AM`),`awk '{print $1}'` 會拿到 `AM` 整串而不是單一字母。Step 3 因此改用固定位置的 `substr`,不依賴這個巧合。
 
 - [ ] **Step 2: 逐項核對**
 
@@ -491,10 +493,10 @@ chezmoi status | awk '{print $2}' | sort -u
 for f in .zshrc .claude/CLAUDE.md .config/opencode/opencode.json; do
   test -e "$HOME/$f" && echo "既有: $f"
 done
-chezmoi status | grep '^M' | awk '{print $2}' | sort -u
+chezmoi status | awk '{ if (substr($0,2,1) == "M") print substr($0,4) }' | sort -u
 ```
 
-`chezmoi status` 裡 `M` 開頭的那些行本身就是「既有檔案將被覆蓋」的清單(見 Step 1 的說明)。這份清單必須**正好**是那三個。多出任何一項就停下來問人——那代表有這台機器上還在用、而 spec 沒討論過的檔案要被蓋掉。
+`substr($0,2,1)` 直接取每行第二個字元(即第二欄的狀態碼),不靠 `grep '^M'` 錨定行首——那樣行不通,因為每行實際上以第一欄(這台目前都是空白)開頭,`M`/`A` 是第二個字元,`grep '^M'` 永遠對不上,會安靜印出空結果。第二欄是 `M` 的那些行就是「既有檔案將被覆蓋」的清單(見 Step 1 的兩欄說明)。這份清單必須**正好**是那三個。多出任何一項就停下來問人——那代表有這台機器上還在用、而 spec 沒討論過的檔案要被蓋掉。
 
 - [ ] **Step 4: 確認 ssh config 不受影響**
 

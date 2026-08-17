@@ -65,7 +65,7 @@ dotfiles/
 │   ├── dot_claude/
 │   │   └── CLAUDE.md                  # 規則本體(原 ai-agent/AGENTS.md)
 │   ├── private_dot_ssh/
-│   │   └── config                     # 自動 ~/.ssh 700 / config 600
+│   │   └── private_config              # 自動 ~/.ssh 700 / config 600
 │   └── dot_config/
 │       ├── tmux/                      # 32 個可執行檔加 executable_ 前綴
 │       ├── nvim/lua/config/options.lua
