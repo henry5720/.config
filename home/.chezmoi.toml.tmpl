@@ -1,0 +1,4 @@
+{{- $codeServerPassword := promptStringOnce . "codeServerPassword" "code-server 密碼" -}}
+
+[data]
+    codeServerPassword = {{ $codeServerPassword | quote }}
