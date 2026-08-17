@@ -20,7 +20,7 @@ bind-addr: 127.0.0.1:8080
 # 明碼就夠了:外面還有 tailscale 那層,只有 tailnet 裡的裝置連得到,
 # 而且 code-server 自己的預設也是明碼。但別用你其他地方在用的密碼。
 auth: password
-password: {{ .codeServerPassword }}
+password: {{ .codeServerPassword | quote }}
 
 # 想更保險再改 hash(優先於 password,兩行只留一行):
 #   echo -n '你的密碼' | npx argon2-cli -e
