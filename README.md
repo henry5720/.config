@@ -33,26 +33,27 @@
 
 ## 安裝與部署
 
-家目錄的設定檔由 [chezmoi](https://www.chezmoi.io) 部署,新機器一行:
+家目錄的設定檔由 [chezmoi](https://www.chezmoi.io) 部署,新機器兩步:
 
 > ⚠️ 這台機器如果**已經在用**(已有 `~/.zshrc`、`~/.config/opencode/` 等既有設定),
-> `chezmoi init --apply` 會**直接覆蓋且不留備份**。先自行備份想留的檔案再跑這行。
+> `chezmoi init --apply` 會**直接覆蓋且不留備份**。先自行備份想留的檔案再跑。
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" init --apply henry5720
+sudo snap install chezmoi --classic
+chezmoi init --apply henry5720
 ```
 
-`-b "$HOME/.local/bin"` 不能省——安裝腳本預設把 binary 裝到**相對路徑** `./bin`(當前目錄下),
-不帶這個參數的話 chezmoi 會裝到執行當下的 `$PWD/bin`,不在任何 PATH 裡,下一步就
-`chezmoi: command not found`。
+第二行做三件事:clone 本 repo 到 `~/.local/share/chezmoi`、把 `home/` 底下的設定檔部署到家目錄、
+問一次 code-server 密碼(見[秘密](#秘密))。
 
-這行做三件事:裝 chezmoi、clone 本 repo 到 `~/.local/share/chezmoi`、把 `home/` 底下的設定檔部署到家目錄。過程中會問一次 code-server 密碼(見[秘密](#秘密))。
+**為什麼用 snap**:apt 的套件庫沒有 chezmoi(Debian 有,Ubuntu 沒跟上),而 snap 那份是上游作者
+twpayne 本人發布的,還附帶自動升級。想釘住版本用 `sudo snap refresh --hold chezmoi`。
 
 套件安裝是另一條線,chezmoi 不管:
 
 ```bash
 cd ~/.local/share/chezmoi
-bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + zsh 插件 + 預設 shell
+bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + zsh 插件 + chezmoi + 預設 shell
 bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / btop / nvm / code-server
 ```
 
@@ -63,7 +64,10 @@ bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / 
 
 ### 日常操作
 
-> 剛跑完 bootstrap 的同一個終端機裡打 `chezmoi` 找不到?正常的,不是失敗。`~/.local/bin` 要新開終端機或重新登入才進 PATH,開一個新終端機就行。
+> 在**已經是 zsh** 的終端機裡剛裝完 snap、打 `chezmoi` 找不到?正常的,不是失敗。
+> `/snap/bin` 是由部署下來的 `.zshrc` 加進 PATH 的(Ubuntu 的 `/etc/zsh/zprofile` 不 source
+> `/etc/profile`,所以 snapd 自己那條加不到 zsh),開一個新終端機就行。全新機器不會遇到——
+> 那時還在 bash,`/snap/bin` 本來就在 PATH 裡。
 
 | 想做的事 | 指令 |
 |---|---|
@@ -214,6 +218,7 @@ git show <commit>:.config/opencode/opencode.json
 ## 依賴一覽
 
 - **平台**:WSL2(Windows)+ Ubuntu 24.04 為主;xfce/tablet 腳本需 Termux(Android)。
+- **dotfile 部署**:chezmoi(snap,由 `install-base.sh` 安裝)。snap 需要 systemd,Ubuntu 24.04 的 WSL 映像預設已開。
 - **shell**:zsh、Powerlevel10k、autosuggestions、syntax-highlighting(裝在 `~/.config/zsh/`)。
 - **tmux**:tmux、TPM、`tmux-resurrect`/`continuum`、`fzf`、`jq`、Python 3,以及私有 `agent-tracker`(未附)。
 - **編輯器**:Neovim + 既有 LazyVim 基底。
