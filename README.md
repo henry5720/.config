@@ -35,6 +35,9 @@
 
 家目錄的設定檔由 [chezmoi](https://www.chezmoi.io) 部署,新機器一行:
 
+> ⚠️ 這台機器如果**已經在用**(已有 `~/.zshrc`、`~/.config/opencode/` 等既有設定),
+> `chezmoi init --apply` 會**直接覆蓋且不留備份**。先自行備份想留的檔案再跑這行。
+
 ```bash
 sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" init --apply henry5720
 ```
@@ -44,9 +47,6 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin" init --apply henry
 `chezmoi: command not found`。
 
 這行做三件事:裝 chezmoi、clone 本 repo 到 `~/.local/share/chezmoi`、把 `home/` 底下的設定檔部署到家目錄。過程中會問一次 code-server 密碼(見[秘密](#秘密))。
-
-> ⚠️ 這台機器如果**已經在用**(已有 `~/.zshrc`、`~/.config/opencode/` 等既有設定),
-> `chezmoi init --apply` 會**直接覆蓋且不留備份**。先自行備份想留的檔案再跑這行。
 
 套件安裝是另一條線,chezmoi 不管:
 
@@ -62,6 +62,8 @@ bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / 
 見[依賴一覽](#依賴一覽)。
 
 ### 日常操作
+
+> 剛跑完 bootstrap 的同一個終端機裡打 `chezmoi` 找不到？正常的,不是失敗。`~/.local/bin` 要新開終端機或重新登入才進 PATH,開一個新終端機就行。
 
 | 想做的事 | 指令 |
 |---|---|
