@@ -1,5 +1,6 @@
-# 這是範本,不是生效的設定。install-tools.sh 會 cp 一份到
-# ~/.config/code-server/config.yaml,之後改那份 —— 密碼寫在那裡,不進 git。
+# 這份由 chezmoi 從 home/dot_config/private_code-server/private_config.yaml.tmpl
+# 產生。要改設定改那份 template,再 chezmoi apply。
+# 密碼不在 template 裡 —— 它從 ~/.config/chezmoi/chezmoi.toml 帶入,那個檔不在 git。
 # 內容是「安全預設」:只綁 127.0.0.1、TLS 交給外面處理。
 # 適用 phone(方案 A:ssh -L)和 henry-desktop(方案 B:tailscale serve)。
 # 遠端連線的五種做法與各自代價,見 docs/code-server-remote.md。
@@ -14,11 +15,12 @@ bind-addr: 127.0.0.1:8080
 # ===============================================================
 # 2. 認證
 # ===============================================================
-# 密碼填在你本機那份,不要填回這個範本 —— 範本在 git 裡,而且 repo 是公開的。
+# 密碼來自 chezmoi 的 codeServerPassword 變數,不是寫死在這。
+# 要改密碼:chezmoi edit-config 改那一行,再 chezmoi apply。
 # 明碼就夠了:外面還有 tailscale 那層,只有 tailnet 裡的裝置連得到,
 # 而且 code-server 自己的預設也是明碼。但別用你其他地方在用的密碼。
 auth: password
-# password: 換成你的密碼
+password: {{ .codeServerPassword | quote }}
 
 # 想更保險再改 hash(優先於 password,兩行只留一行):
 #   echo -n '你的密碼' | npx argon2-cli -e

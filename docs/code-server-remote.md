@@ -101,8 +101,9 @@ tailscale serve status      # 確認,順便看到完整網址
 tailscale cert henry-desktop.<你的 tailnet>.ts.net
 ```
 
-然後在 `~/.config/code-server/config.yaml` 填 `cert` / `cert-key` 指向那兩個檔
-（WSL 從 `/mnt/c/...` 讀得到）。
+然後在 `home/dot_config/private_code-server/private_config.yaml.tmpl` 填 `cert` / `cert-key`
+指向那兩個檔（WSL 從 `/mnt/c/...` 讀得到），改完 `chezmoi apply`。設定檔由 chezmoi 管，
+不要直接改 `~/.config/code-server/config.yaml`——下次 apply 會被蓋掉。
 
 代價：憑證約 90 天到期，要自己排程重跑 `tailscale cert`，B 沒這問題。
 
@@ -121,7 +122,7 @@ ssh -L 8080:localhost:8080 henry-desktop
 ### D|code-server 自己產自簽憑證
 
 ```yaml
-# ~/.config/code-server/config.yaml
+# home/dot_config/private_code-server/private_config.yaml.tmpl,改完 chezmoi apply
 cert: true
 ```
 
@@ -140,7 +141,7 @@ service worker 註冊（`Failed to register a ServiceWorker`），部分擴充�
 ```bash
 mkcert -install
 mkcert henry-desktop.local 100.119.136.27
-# 把產出的 pem 填進 config.yaml 的 cert / cert-key
+# 把產出的 pem 填進 private_config.yaml.tmpl 的 cert / cert-key,chezmoi apply
 ```
 
 **坑**：每台 client 都要裝 CA。Android 裝的是 user CA——Chrome 瀏覽網頁認，
@@ -154,22 +155,26 @@ mkcert henry-desktop.local 100.119.136.27
 
 tailscale 那層已經擋掉 tailnet 以外的人,code-server 的密碼是第二道。
 
-`.config/code-server/config.yaml.example` 是**範本**,安裝腳本會 cp 一份到
-`~/.config/code-server/config.yaml`(順便 `chmod 600`)。密碼填在 cp 出來的那份,不要填回
-範本——範本在 git 裡,而且這個 repo 是公開的。argon2 hash 一樣不能放,它是可以離線爆的。
+設定檔由 chezmoi 從 `home/dot_config/private_code-server/private_config.yaml.tmpl` 產生
+`~/.config/code-server/config.yaml`,權限由 `private_` 前綴保證(目錄 700 / 檔案 600)。
+密碼**不填在 template 裡**——那份在 git 裡,而且這個 repo 是公開的。argon2 hash 一樣不能放,
+它是可以離線爆的。
+
+密碼改由 `chezmoi init` 互動詢問一次,存在 `~/.config/chezmoi/chezmoi.toml`(repo 外),
+以 template 變數 `{{ .codeServerPassword }}` 帶入。事後要改密碼:
+
+```bash
+chezmoi edit-config   # 改 codeServerPassword
+chezmoi apply
+```
 
 明碼就夠了。tailscale 已經把非 tailnet 的人全擋在外面,code-server 自己的預設也是明碼
 (第一次啟動會產一組隨機的寫進 config.yaml)。唯一要守的是**別用你其他地方在用的密碼**,
 明碼落在磁碟上,外洩就是直接可用。
 
-```yaml
-# ~/.config/code-server/config.yaml
-password: 你的密碼
-```
-
 想更保險再換 argon2 hash(`echo -n '你的密碼' | npx argon2-cli -e`),`hashed-password`
-優先於 `password`,兩個留一個。兩個都空著的話 code-server 啟動會直接報錯
-(`main.js:152`),不會偷偷放行。
+優先於 `password`,兩個留一個,一樣改在 template 裡再 `chezmoi apply`。兩個都空著的話
+code-server 啟動會直接報錯(`main.js:152`),不會偷偷放行。
 
 環境變數 `HASHED_PASSWORD` / `PASSWORD` 又會蓋過設定檔
 (code-server 讀完會把它們從 `process.env` 刪掉,不傳給子 process),但**只有你手動在終端機

@@ -5,9 +5,6 @@ GREEN='\033[0;32m'; BLUE='\033[0;34m'; NC='\033[0m'
 DRY_RUN="${DRY_RUN:-0}"
 INPUT_SRC="${INPUT_SRC:-/dev/tty}"   # 正式走 tty;測試可覆寫為 /dev/stdin
 
-# repo 根目錄(本腳本在 script/ubuntu/ 底下)
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
 # 工具清單:編號順序即顯示順序
 TOOLS=(fastfetch btop nvm code-server)
 
@@ -51,26 +48,11 @@ install_code_server() {
     curl -fsSL https://code-server.dev/install.sh | sh
   fi
 
-  # 部署設定檔(cp 範本,不是 symlink —— 本機那份要能填密碼,不能進 git)
-  local src="$REPO_DIR/.config/code-server/config.yaml.example"
-  local dst="$HOME/.config/code-server/config.yaml"
-  mkdir -p "$(dirname "$dst")"
-  if [ -L "$dst" ]; then
-    echo -e "${GREEN}📦 舊版把 config 部署成 symlink,拆掉改 cp${NC}"   # 舊行為的遷移
-    rm "$dst"
-  fi
-  if [ -e "$dst" ]; then
-    echo -e "${BLUE}✅ code-server config 已存在,不覆蓋(裡面可能有密碼)。${NC}"
-  else
-    echo -e "${GREEN}📄 從範本建立 $dst${NC}"
-    cp "$src" "$dst"
-    chmod 600 "$dst"   # 裡面要填明碼密碼
-  fi
-
   cat <<'EOF'
 
-  設定改 ~/.config/code-server/config.yaml(這份不在 git 裡),密碼也填在那:
-    把 `# password: 換成你的密碼` 那行取消註解填進去,明碼即可
+  設定檔由 chezmoi 部署(~/.config/code-server/config.yaml),密碼在
+  `chezmoi init` 時會問一次;要改密碼用 `chezmoi edit-config` 改完
+  再 `chezmoi apply`。
   啟動:systemctl --user enable --now code-server   (預設只綁 127.0.0.1:8080)
   從別台連進來的五種做法:docs/code-server-remote.md
 EOF
