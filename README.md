@@ -63,7 +63,7 @@ bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / 
 
 ### 日常操作
 
-> 剛跑完 bootstrap 的同一個終端機裡打 `chezmoi` 找不到？正常的,不是失敗。`~/.local/bin` 要新開終端機或重新登入才進 PATH,開一個新終端機就行。
+> 剛跑完 bootstrap 的同一個終端機裡打 `chezmoi` 找不到?正常的,不是失敗。`~/.local/bin` 要新開終端機或重新登入才進 PATH,開一個新終端機就行。
 
 | 想做的事 | 指令 |
 |---|---|
