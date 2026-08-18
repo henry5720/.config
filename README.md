@@ -10,6 +10,7 @@
 |---|---|
 | [`docs/ai-agent-setup.md`](docs/ai-agent-setup.md) | 想搞懂 agent 規則 / skill / MCP / plugin 各是什麼、放哪、怎麼更新。**新機器設定 AI 工具前先讀這份。** |
 | [`docs/code-server-remote.md`](docs/code-server-remote.md) | 想從 pad / 手機連自己的 code-server,卡在憑證和 secure context 的時候。列出五種做法與各自代價。 |
+| [`docs/herdr-notifications.md`](docs/herdr-notifications.md) | Herdr 在 WSL2 沒有通知音、SSH 回來後失聲,或要確認 `paplay` / WSLg PulseAudio 時。 |
 | [`docs/tmux-workflow.md`](docs/tmux-workflow.md) | 想搞懂 tmux 的狀態列、session 管理、agent 自動化腳本各是什麼,或狀態列少了東西要查為什麼。 |
 | [`docs/superpowers/`](docs/superpowers) | zsh setup 腳本當初的設計與實作規劃(spec / plan),歷史紀錄性質。 |
 
@@ -116,7 +117,7 @@ code-server 的 template。
 - **shell**:zsh、Powerlevel10k、autosuggestions、syntax-highlighting(裝在 `~/.config/zsh/`)。
 - **tmux**:tmux、TPM、`tmux-resurrect`/`continuum`、`fzf`、`jq`、Python 3,以及私有 `agent-tracker`(未附)。
 - **編輯器**:Neovim + 既有 LazyVim 基底。
-- **AI 工具**:Node/nvm、`opencode` CLI、MCP servers(經 `npx`)。
+- **AI 工具**:Node/nvm、`opencode` CLI、MCP servers(經 `npx`);Herdr 通知音另需 APT 套件 `pulseaudio-utils`。
 - **可選工具**:`fastfetch`、`btop`、`code-server`(由 `install-tools.sh` 安裝)。
 
 ## ⚠️ 機器特定 / fork 前需自行修改
