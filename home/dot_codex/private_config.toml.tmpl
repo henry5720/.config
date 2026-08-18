@@ -1,0 +1,45 @@
+# ============================================================
+# codex-lb - 公司自架的 codex 負載平衡器 (GCP asia-east1-b)
+# 這是**預設** provider —— 官方那條需要 ChatGPT 帳號登入,這台沒有。
+# 要它多用力想時才加: codex --profile codex-gcp
+# API key 由 chezmoi 的 promptStringOnce 提供,不會進公開 repo。
+# ============================================================
+
+# 預設就走 codex-lb。少了這兩行,不加 --profile 時會退回官方 openai provider,
+# 而那條在這台沒有憑證 —— 沒有 ChatGPT 帳號,已 codex logout,~/.codex/auth.json 不存在。
+model = "gpt-5.6-sol"
+model_provider = "codex-lb-gcp"
+
+# 不寫的話 codex 不帶這個參數(TUI 顯示 "none"),強度由後端自己決定、看不出來。
+# medium 是日常寫程式的平衡點;難題用 --profile codex-gcp 上 xhigh。
+model_reasoning_effort = "medium"
+
+[model_providers.codex-lb-gcp]
+name = "openai"  # 必填且小寫,這樣才會啟用遠端 /responses/compact
+base_url = "https://codex.teamsync.com.tw/backend-api/codex"
+wire_api = "responses"
+
+# codex 沒有 api_key 欄位,此欄位會送出 Authorization: Bearer <token>。
+experimental_bearer_token = "{{ .codexLbApiKey }}"
+
+supports_websockets = true       # codex-lb 用 WebSocket 串 /backend-api/codex/responses
+request_max_retries = 4          # HTTP 重試次數
+stream_max_retries = 10          # SSE/WS 重連次數
+stream_idle_timeout_ms = 300000  # 串流閒置 5 分鐘逾時
+
+# ------------------------------------------------------------
+# 以下是 codex 自己會寫入的區段(信任過的專案)。
+# codex 之後新增專案時會直接改 ~/.codex/config.toml,
+# 造成跟這份 source 有落差,用 `chezmoi merge ~/.codex/config.toml` 收回來。
+# ------------------------------------------------------------
+[projects."/home/henry/code/teamsync-frontend"]
+trust_level = "trusted"
+
+[projects."/home/henry/.local/share/chezmoi"]
+trust_level = "trusted"
+
+[tui.model_availability_nux]
+"gpt-5.6-sol" = 2
+
+[features]
+hooks = true

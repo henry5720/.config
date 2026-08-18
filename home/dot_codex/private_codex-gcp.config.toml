@@ -1,0 +1,2 @@
+# 疊在基底 config.toml 之上。基底已經是 codex-lb 了,這裡只加「用力想」。
+model_reasoning_effort = "xhigh"
