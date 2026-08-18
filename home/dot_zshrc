@@ -1,12 +1,18 @@
 # ===============================================================
-# 1. Powerlevel10k 快速啟動 (Instant Prompt)
+# 1. 開場系統資訊
+# ===============================================================
+# 會輸出到終端，必須放在 Powerlevel10k Instant Prompt 之前。
+command -v fastfetch &>/dev/null && fastfetch
+
+# ===============================================================
+# 2. Powerlevel10k 快速啟動 (Instant Prompt)
 # ===============================================================
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
 # ===============================================================
-# 2. 環境變數與路徑 (Path Settings)
+# 3. 環境變數與路徑 (Path Settings)
 # ===============================================================
 # 如果你有使用 pnpm (Senior Engineer 標配)
 export PNPM_HOME="$HOME/.local/share/pnpm"
@@ -27,7 +33,7 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
 # ===============================================================
-# 3. 歷史紀錄設定 (History)
+# 4. 歷史紀錄設定 (History)
 # ===============================================================
 HISTFILE=~/.zsh_history
 HISTSIZE=10000
@@ -40,14 +46,14 @@ setopt HIST_IGNORE_DUPS       # 忽略重複
 setopt HIST_IGNORE_SPACE      # 空格開頭不紀錄
 
 # ===============================================================
-# 4. 載入主題與個人化設定 (已搬移至 .config)
+# 5. 載入主題與個人化設定 (已搬移至 .config)
 # ===============================================================
 [ -f ~/.config/zsh/powerlevel10k/powerlevel10k.zsh-theme ] \
   && source ~/.config/zsh/powerlevel10k/powerlevel10k.zsh-theme
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 # ===============================================================
-# 5. 補全系統與外掛 (Completion & Plugins)
+# 6. 補全系統與外掛 (Completion & Plugins)
 # ===============================================================
 autoload -Uz compinit && compinit
 zstyle ':completion:*' menu select
@@ -62,12 +68,7 @@ zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' # 補全忽略大小�
   && source ~/.config/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # ===============================================================
-# 5.5 開場系統資訊 (只有裝了 fastfetch 才跑)
-# ===============================================================
-command -v fastfetch &>/dev/null && fastfetch
-
-# ===============================================================
-# 6. 自定義別名 (Aliases)
+# 7. 自定義別名 (Aliases)
 # ===============================================================
 # alias c='claude'
 # alias oc='opencode'
