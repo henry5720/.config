@@ -1,4 +1,6 @@
 {{- $codeServerPassword := promptStringOnce . "codeServerPassword" "code-server 密碼" -}}
+{{- $codexLbApiKey := promptStringOnce . "codexLbApiKey" "codex-lb API key" -}}
 
 [data]
     codeServerPassword = {{ $codeServerPassword | quote }}
+    codexLbApiKey = {{ $codexLbApiKey | quote }}

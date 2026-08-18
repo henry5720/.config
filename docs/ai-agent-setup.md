@@ -139,7 +139,8 @@ git clone <repo網址> ~/code/<名字>
 ln -sfn ~/code/<名字>/skills/<skill名> ~/.claude/skills/<skill名>
 ```
 
-一個 skill 就是一個資料夾,裡面有 `SKILL.md`。連過去就能用,不用註冊、不用重啟。
+一個 skill 就是一個資料夾,裡面有 `SKILL.md`。不用額外註冊;已開啟的 agent 不會重新掃描,
+新增後重啟 client。
 
 **自己寫的 skill 放哪?放在它依賴的東西旁邊。**
 例如 `slack-todo` 會呼叫 `work-helper/bin/` 底下的程式 —— 放同一個 repo,
@@ -167,6 +168,10 @@ ln -sfn ~/code/<名字>/skills/<skill名> ~/.claude/skills/<skill名>
 `npx skills` 用旗標切:`-g` 是 global,`-p` 是只裝這個專案。
 手動 clone 的話就是 symlink 拉到上表對應的位置。
 
+opencode 會自動掃 `~/.claude/skills/`、`~/.agents/skills/`,以及專案裡對應的兩個目錄。
+所以同一份 skill 不用再寫進 `opencode.json`;目前大部分 `~/.claude/skills/*` 本來就是指向
+`~/.agents/skills/*` 的 symlink。
+
 project 範圍的好處是**會進版控**,同事 clone 下來就有;
 壞處是換個專案就沒了。判斷方法:**這個 skill 講的事,換個 repo 還成立嗎?**
 
@@ -189,6 +194,10 @@ MCP 是「讓 agent 連到外部服務」的通道 —— 查文件、開瀏覽�
 
 也是可選的,想接什麼再裝什麼。
 
+**不同 client 不會共用 MCP 設定。** Claude 裡裝過的 MCP 或 plugin,opencode 不會自動載入;
+同一個 server 要分別寫進兩邊的設定。這跟 skill 不同,不要因為 opencode 讀得到
+`~/.claude/skills/` 就以為它也會讀 Claude 的 MCP。
+
 ## Claude
 
 ```bash
@@ -203,32 +212,30 @@ session 裡打 `/mcp` 可以看目前連上了哪些。
 
 ## opencode
 
-寫在 `home/dot_config/opencode/opencode.json`(部署成 `~/.config/opencode/opencode.json`)的
-`mcp` 欄位,格式是每個 server 一段 `command` 陣列。這份設定**在本 repo 裡**,
-所以它是唯一跟著 dotfiles 走的 MCP 設定。
+寫在 `home/dot_config/opencode/private_opencode.json.tmpl`(部署成權限 600 的
+`~/.config/opencode/opencode.json`)的 `mcp` 欄位,格式是每個 server 一段 `command` 陣列。
 
 目前接了 `context7`、`sequential-thinking`、`chrome-devtools`,外加 `opencode-wakatime` 外掛。
+`chrome-devtools` 從 WSL 經 mirrored networking 連到 Windows 的 `127.0.0.1:9222`,不會在
+WSL 另開 Chrome。Windows Chrome 必須用非預設 profile 啟動:
 
-### 為什麼沒有 `provider` 區塊
-
-是刻意拿掉的。opencode 內建認得的 provider 用 `opencode auth login` 就好,手寫 `provider`
-只有「自訂 base URL 的代理」才需要。原本那份 TeamSync 代理設定已經失效,留著只會在模型選單裡
-出現「選了就噴錯」的項目。
-
-所以 clone 下來是**沒有任何模型供應商**的,要自己 `opencode auth login`。
-
-要撈回舊的當模板(311 行,含 provider 寫法):
-
-```bash
-chezmoi cd
-git show efcc09d^:.config/opencode/opencode.json
+```powershell
+& "$env:ProgramFiles\Google\Chrome\Application\chrome.exe" `
+  --remote-debugging-port=9222 `
+  --user-data-dir="$env:LOCALAPPDATA\ChromeDevToolsMCP"
 ```
 
-`efcc09d` 就是移除那筆 commit。要自己找的話用 `--follow`,因為檔案在 chezmoi 遷移時搬過位置:
+`9222` 等於完整瀏覽器控制權,只綁 localhost,不要對 LAN 或網際網路開放。這個獨立 profile
+第一次要手動登入;之後會保留 cookie 和登入狀態。
 
-```bash
-git log --oneline --follow -- home/dot_config/opencode/opencode.json
-```
+### provider 與 API key
+
+這份設定有自訂 base URL 的 `codex-lb-gcp` provider,所以不能只靠 `opencode auth login`。
+provider 結構跟著 dotfiles 走,API key 則由 `home/.chezmoi.toml.tmpl` 的 `promptStringOnce`
+在 `chezmoi init` 時詢問,只存在 repo 外的 `~/.config/chezmoi/chezmoi.toml`。
+
+fork 這個 repo 時要換掉 provider 的 base URL,並在 `chezmoi init` 輸入自己的 key。不要把
+渲染後的 `~/.config/opencode/opencode.json` 收回 repo,那份含明文 key。
 
 > 大部分 MCP 是用 `npx -y` 跑的,每次啟動抓最新版,不需要手動更新。
 

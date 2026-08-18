@@ -123,7 +123,8 @@ code-server 的 template。
 
 1. `script/termux/startxfce_proot.sh` **寫死使用者名稱 `henry`**(`su - henry`)。
 2. tmux 的 agent 整合依賴**未附的私有 binary** `~/.config/agent-tracker/bin/agent` 及其 `~/.config/agent-tracker/`、`~/.cache/agent/` 狀態檔;缺了功能降級但不致命。
-3. `home/dot_config/opencode/opencode.json` **沒有設定任何模型供應商**,clone 下來要自己 `opencode auth login`。
+3. `home/dot_config/opencode/private_opencode.json.tmpl` 含 henry 使用的自訂 provider;fork 後要換
+   base URL,並在 `chezmoi init` 輸入自己的 API key。
 4. `home/dot_claude/CLAUDE.md` 是 henry 的**個人回覆偏好**(繁中、白話),fork 前請整份換掉。
 5. `home/private_dot_ssh/private_config` 內的 Host 與 `IdentityFile` 是 henry 的,fork 後整份替換。
 6. `wsl/` 內含範例 IP,且需手動複製到 Windows 端。
