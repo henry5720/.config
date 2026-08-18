@@ -117,6 +117,73 @@ ssh -L 8080:localhost:8080 henry-desktop
 
 ---
 
+## henry-laptop 可以用哪些
+
+**跟 henry-desktop 同一招(B),但這台多一個轉折:Windows 和 WSL 各有一個 tailscale 節點。**
+
+| 節點 | 在哪 | tailnet IP | 在 WSL 裡看到的介面 |
+|---|---|---|---|
+| `henry-laptop` | Windows | `100.97.54.0` | `eth1`(mirrored 鏡射進來的) |
+| `henry-laptop-wsl` | WSL | `100.94.73.1` | `tailscale0`(WSL 自己的 tailscaled) |
+
+**serve 設在 Windows 那個節點**,跟 henry-desktop 一致:
+
+```powershell
+# Windows PowerShell,不需要系統管理員權限
+tailscale serve --bg --https=443 8080
+tailscale serve status
+```
+
+得到 `https://henry-laptop.<你的 tailnet>.ts.net`,tailnet 內任何裝置的瀏覽器直接開,不用打 port。
+code-server 設定一行都不用改,`bind-addr` 保持 `127.0.0.1:8080`、`cert: false`。
+
+路徑是這樣接起來的:
+
+```
+瀏覽器 → https://henry-laptop.<tailnet>.ts.net
+       → Windows tailscaled(聽 100.97.54.0:443,終結 TLS)
+       → proxy http://127.0.0.1:8080
+       → mirrored networking 跨進 WSL
+       → code-server(綁 127.0.0.1:8080)
+```
+
+> ⚠️ **從 WSL 裡打那個網址會 timeout,那是正常的,不是設定壞了。**
+> WSL 有自己的 tailscale 節點,從它去連同一台實體機器上的 Windows 節點是自我參照的路徑,
+> 不會通。要在本機驗證就直接打 `curl -I http://127.0.0.1:8080`(回 302 就是活的),
+> 或從 Windows 側跑 `curl.exe --noproxy '*' https://henry-laptop.<tailnet>.ts.net`。
+
+> ⚠️ 用 PowerShell 的 `Invoke-WebRequest` 測會失敗,但那不是服務的問題 ——
+> `.wslconfig` 有 `autoProxy=true`,Windows 的代理設定被同步過來,`Invoke-WebRequest`
+> 會照系統代理走而連不到 localhost。測試一律加 `--noproxy '*'`(curl)或直接用 TCP 連線。
+
+### WSL 那個節點要不要留
+
+打算收掉、統一走 Windows 節點的話,先確認 `.ssh/config` 裡這五個 Host 還連得到 ——
+它們都是 tailnet IP,目前靠 **WSL 自己的 tailscaled** 在通:
+
+`henry-laptop`、`henry-desktop`、`nettop`、`pad`、`phone`
+
+`/etc/resolv.conf` 指向 `100.100.100.100`(MagicDNS),那也是 WSL 的 tailscaled 提供的,
+一起會受影響。實測過:把來源位址強制指到 `eth1`(Windows 節點那條)**連不通**,
+所以「鏡射進來的介面有路由」不等於「traffic 走得通」。
+
+關掉之前先這樣試:
+
+```bash
+sudo systemctl stop tailscaled
+timeout 6 bash -c 'exec 3<>/dev/tcp/100.119.136.27/22 && echo OK'   # 還通得到 henry-desktop?
+getent hosts henry-desktop.tail9b4b9b.ts.net                        # MagicDNS 還解析得了?
+```
+
+`Connection refused` 也算通 —— 代表封包有到對方,只是那個 port 沒服務;`timeout` 才是不通。
+
+通了就 `sudo systemctl disable --now tailscaled`。不通的話,要嘛保留 WSL 這個節點(它其實不礙事),
+要嘛把那五個 Host 改走 Windows 的 ssh。
+
+**code-server 這條線不受影響** —— serve 本來就設在 Windows 節點上。
+
+---
+
 ## D、E:自簽憑證(兩台都適用,但都有坑)
 
 ### D|code-server 自己產自簽憑證
@@ -193,6 +260,7 @@ sudo loginctl enable-linger "$USER"   # 沒開終端機時也讓它活著
 
 - **phone** → A（`ssh phone`，config 已備好）
 - **henry-desktop** → B（`tailscale serve`，設一次就好）
+- **henry-laptop** → B（同上,serve 設在 **Windows** 那個節點;WSL 裡打那個網址會 timeout 是正常的）
 
 ---
 
