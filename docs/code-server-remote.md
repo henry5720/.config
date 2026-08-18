@@ -5,6 +5,20 @@
 
 ---
 
+## 先把它裝起來
+
+`script/ubuntu/install-tools.sh` 的選單裡選 `code-server`,會用官方腳本裝 binary。
+設定檔不用自己弄,由 chezmoi 從 `home/dot_config/private_code-server/private_config.yaml.tmpl`
+部署(權限與密碼見[密碼放哪](#密碼放哪))。
+
+```bash
+code-server     # 要用的時候再開,丟 tmux 裡
+```
+
+預設只綁 `127.0.0.1:8080`、`cert: false` —— **假設 TLS 由外層處理**,也就是下面五種做法的前提。
+
+---
+
 ## 先搞懂卡在哪
 
 瀏覽器只把兩種來源當成 **secure context**：`https://`（憑證有效）和 `localhost`。

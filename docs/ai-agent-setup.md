@@ -70,6 +70,17 @@ chezmoi apply ~/.claude/CLAUDE.md
 所以在 dotfiles 裡開 Claude 會讀到兩次:一次是你的個人設定,一次是「dotfiles 這個專案的設定」——
 同一份規則載入兩遍,白花錢,而且重複的指令本身就會讓 agent 更難遵守。
 
+> 這條**不包含** repo 根目錄的 `dotfiles/CLAUDE.md`。那份寫的是「怎麼改這個 repo」
+> (檔名前綴、秘密、驗證方式),和個人偏好不重複,載入一次,是正常的專案指引。
+> 要避開的只有把**個人規則本體**放到 `dotfiles/.claude/CLAUDE.md`。
+
+## `ai-agent/` 那兩份 think-mode 不是規則
+
+`ai-agent/AGENTS(think-mode).md` 和 `AGENTS(think-mode-long).md` 是「思維總監」對抗式 persona,
+**手動貼進對話用的**,不由 chezmoi 部署、不在 symlink 鏈裡、不會自動生效。
+
+放在 repo 根目錄(chezmoi 看不到的那半)就是為了跟會自動載入的規則分開。
+
 ---
 
 # 2. skill
@@ -192,8 +203,32 @@ session 裡打 `/mcp` 可以看目前連上了哪些。
 
 ## opencode
 
-寫在 `.config/opencode/opencode.json` 的 `mcp` 欄位,格式是每個 server 一段
-`command` 陣列。這份設定**在本 repo 裡**,所以它是唯一跟著 dotfiles 走的 MCP 設定。
+寫在 `home/dot_config/opencode/opencode.json`(部署成 `~/.config/opencode/opencode.json`)的
+`mcp` 欄位,格式是每個 server 一段 `command` 陣列。這份設定**在本 repo 裡**,
+所以它是唯一跟著 dotfiles 走的 MCP 設定。
+
+目前接了 `context7`、`sequential-thinking`、`chrome-devtools`,外加 `opencode-wakatime` 外掛。
+
+### 為什麼沒有 `provider` 區塊
+
+是刻意拿掉的。opencode 內建認得的 provider 用 `opencode auth login` 就好,手寫 `provider`
+只有「自訂 base URL 的代理」才需要。原本那份 TeamSync 代理設定已經失效,留著只會在模型選單裡
+出現「選了就噴錯」的項目。
+
+所以 clone 下來是**沒有任何模型供應商**的,要自己 `opencode auth login`。
+
+要撈回舊的當模板(311 行,含 provider 寫法):
+
+```bash
+chezmoi cd
+git show efcc09d^:.config/opencode/opencode.json
+```
+
+`efcc09d` 就是移除那筆 commit。要自己找的話用 `--follow`,因為檔案在 chezmoi 遷移時搬過位置:
+
+```bash
+git log --oneline --follow -- home/dot_config/opencode/opencode.json
+```
 
 > 大部分 MCP 是用 `npx -y` 跑的,每次啟動抓最新版,不需要手動更新。
 
