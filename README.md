@@ -12,6 +12,7 @@
 | [`docs/chrome-devtools-mcp.md`](docs/chrome-devtools-mcp.md) | 想讓 agent 開瀏覽器,或 chrome-devtools MCP 連不上(`Target closed`)的時候。含 `chrome-mcp` 用法與為什麼不裝 Linux Chrome。 |
 | [`docs/code-server-remote.md`](docs/code-server-remote.md) | 想從 pad / 手機連自己的 code-server,卡在憑證和 secure context 的時候。列出五種做法與各自代價。 |
 | [`docs/herdr-notifications.md`](docs/herdr-notifications.md) | Herdr 在 WSL2 沒有通知音、SSH 回來後失聲,或要確認 `paplay` / WSLg PulseAudio 時。 |
+| [`docs/no-sudo-setup.md`](docs/no-sudo-setup.md) | 在別人的機器上有一個 user 但沒有 sudo(例:`nettop`),想把這份 dotfiles 套上去的時候。含 `script/ubuntu/*.sh` 為什麼在那裡跑不起來。 |
 | [`docs/tmux-workflow.md`](docs/tmux-workflow.md) | 想搞懂 tmux 的狀態列、session 管理、agent 自動化腳本各是什麼,或狀態列少了東西要查為什麼。 |
 | [`docs/superpowers/`](docs/superpowers) | zsh setup 腳本當初的設計與實作規劃(spec / plan),歷史紀錄性質。 |
 
