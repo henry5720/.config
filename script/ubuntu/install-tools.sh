@@ -6,7 +6,7 @@ DRY_RUN="${DRY_RUN:-0}"
 INPUT_SRC="${INPUT_SRC:-/dev/tty}"   # 正式走 tty;測試可覆寫為 /dev/stdin
 
 # 工具清單:編號順序即顯示順序
-TOOLS=(fastfetch btop nvm code-server)
+TOOLS=(fastfetch btop nvm code-server ffmpeg)
 
 install_fastfetch() {
   command -v fastfetch &>/dev/null && { echo -e "${BLUE}✅ fastfetch 已安裝。${NC}"; return; }
@@ -56,6 +56,13 @@ install_code_server() {
   啟動:systemctl --user enable --now code-server   (預設只綁 127.0.0.1:8080)
   從別台連進來的五種做法:docs/code-server-remote.md
 EOF
+}
+
+install_ffmpeg() {
+  command -v ffmpeg &>/dev/null && { echo -e "${BLUE}✅ ffmpeg 已安裝。${NC}"; return; }
+  echo -e "${GREEN}📦 安裝 ffmpeg (apt)...${NC}"
+  sudo apt update
+  sudo apt install -y ffmpeg
 }
 
 # 顯示選單並讀取選擇

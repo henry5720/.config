@@ -61,7 +61,7 @@ twpayne 本人發布的,還附帶自動升級。想釘住版本用 `sudo snap re
 ```bash
 cd ~/.local/share/chezmoi
 bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + zsh 插件 + chezmoi + 預設 shell
-bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / btop / nvm / code-server
+bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / btop / nvm / code-server / ffmpeg
 ```
 
 工具選單:空格分隔多選(例 `1 3`),直接 Enter = 全裝。兩者順序無所謂——`.zshrc` 對插件缺檔有防呆。
@@ -122,7 +122,7 @@ code-server 的 template。
 - **tmux**:tmux、TPM、`tmux-resurrect`/`continuum`、`fzf`、`jq`、Python 3,以及私有 `agent-tracker`(未附)。
 - **編輯器**:Neovim + 既有 LazyVim 基底。
 - **AI 工具**:Node/nvm、`opencode` CLI、MCP servers(經 `npx`);Herdr 通知音另需 APT 套件 `pulseaudio-utils`。
-- **可選工具**:`fastfetch`、`btop`、`code-server`(由 `install-tools.sh` 安裝)。
+- **可選工具**:`fastfetch`、`btop`、`code-server`、`ffmpeg`(由 `install-tools.sh` 安裝)。
 
 ## ⚠️ 機器特定 / fork 前需自行修改
 
