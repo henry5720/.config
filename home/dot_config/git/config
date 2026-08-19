@@ -1,0 +1,13 @@
+# ~/.config/git/config —— 走 XDG 這份,不是 ~/.gitconfig。
+#
+# git 兩份都讀(`git config --list --show-origin` 會同時列出兩個檔),所以這份
+# 是純新增,不用改 ~/.gitconfig。~/.gitconfig 留著放 user.email、editor 這類
+# 身分與機器設定,那些不進公開 repo。
+
+# ~/code 底下的 repo 共用一份 git hooks。
+#
+# 比對的是 **gitdir** 不是工作目錄,所以 herdr 把 worktree 放在 ~/.herdr/ 也算得進來
+# —— 那些 worktree 的 gitdir 是 ~/code/<repo>/.git/worktrees/<名字>。
+# path 是相對路徑,相對於這個檔案所在的目錄。
+[includeIf "gitdir:~/code/"]
+	path = config-code

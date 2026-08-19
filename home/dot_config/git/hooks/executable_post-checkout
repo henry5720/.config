@@ -1,0 +1,35 @@
+#!/bin/sh
+# 新開的 git worktree 自動帶上 codegraph 索引。
+#
+# 1. 為什麼掛 post-checkout —— `git worktree add` 會觸發它(實測),所以不管用
+#    herdr、`git worktree add` 還是 IDE 開,都會跑到這裡。不用在每個開 worktree
+#    的流程裡各寫一次。
+#
+# 2. 為什麼是複製而不是 `codegraph init` —— 索引 db 裡沒有絕對路徑,可以直接搬。
+#    7,135 檔的前端專案實測:重新 init 要 25 秒、峰值 2.9GB RAM;複製加 sync
+#    只要 1 秒、峰值 123MB(sync 只重解析跟主 checkout 不同的那幾個檔)。
+#
+# 3. 為什麼是 cp 不是 symlink —— worktree 的 sync 會寫回索引,symlink 會把主
+#    checkout 那份寫髒。node_modules 可以 symlink,這個不行。
+#
+# 4. 為什麼全部用 if 包、最後明確 exit 0 —— husky 的 shim 用 `sh -e` 執行這支
+#    (見 docs/ai-agent-setup.md),`[ 條件 ] && exit 0` 這種收尾在條件不成立時
+#    整條 AND-list 回 1,整支就以 1 結束,husky 會印 "script failed"。
+#
+# 5. 為什麼路徑都從 --show-toplevel 算 —— 一般 `git checkout` 也會觸發這支,
+#    而那時 cwd 可能在子目錄;用相對路徑會把索引複製到子目錄裡去。
+
+top=$(git rev-parse --show-toplevel 2>/dev/null) || top=''
+
+if [ -n "$top" ] && [ ! -d "$top/.codegraph" ]; then
+	main=$(git worktree list --porcelain | head -1 | sed 's/^worktree //')
+	if [ -n "$main" ] && [ "$top" != "$main" ] && [ -d "$main/.codegraph" ] \
+		&& command -v codegraph >/dev/null 2>&1; then
+		if cp -r "$main/.codegraph" "$top/.codegraph"; then
+			codegraph sync -q "$top" || true
+			echo "codegraph: 索引已從 $main 複製並同步"
+		fi
+	fi
+fi
+
+exit 0

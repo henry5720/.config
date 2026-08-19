@@ -287,18 +287,168 @@ codegraph install -t claude -l global -y   # 寫 MCP 設定進 Claude Code(user 
 
 ```bash
 cd <專案>
-codegraph init      # 建索引,之後存檔 2 秒內自動同步
+codegraph init      # 建索引
 codegraph status    # 看索引狀態
+codegraph sync      # 手動同步(-q 給 hook 用)
 codegraph uninit -f # 移除(注意是 -f,不是 -y)
 ```
 
-`.codegraph/` 裡自帶一份 `.gitignore`(內容是 `*` 加 `!.gitignore`),所以 db 不會進版控,
-但**目錄本身還是會出現在 `git status` 的 untracked**,要不要在該 repo 的 `.gitignore` 加
-`.codegraph/` 自己決定。
+`.codegraph/` 裡自帶一份 `.gitignore`(內容是 `*` 加 `!.gitignore`),db 不會進版控,但
+**目錄本身會出現在 `git status` 的 untracked** —— 這件事由全域 gitignore 一次擋掉,見
+[worktree 怎麼處理](#worktree-怎麼處理索引不重建只複製)。
 
-**這個 dotfiles repo 不值得 init。** 實測 `codegraph init` 只索引到 5 個檔
-(4 個 `home/dot_config/tmux/scripts/*.py` 加 `nvim/lua/config/options.lua`,80 nodes) ——
-shell script 和設定檔它不解析,而這個 repo 幾乎只有這兩種東西。
+哪些專案值得 init?判準是「檔案多到 grep 不完」。實測數字:
+
+| 專案 | 索引到的檔 | init 耗時 | 峰值記憶體 | 索引大小 |
+|---|---|---|---|---|
+| 工作用的前端(React) | 7,135 | 20 秒 | 2.9 GB | 261 MB |
+| 工作用的主後端(Python) | 2,604 | 31 秒 | 2.8 GB | 274 MB |
+| `~/code/fizzt-frontend` | 54 | 1.4 秒 | — | 1.8 MB |
+| 這個 dotfiles repo | **5** | — | — | 400 KB |
+
+後兩個不值得:54 個檔 agent 直接讀還更準。**dotfiles repo 特別不值得** —— 它只索引到
+4 支 `home/dot_config/tmux/scripts/*.py` 加 `nvim/lua/config/options.lua`,
+shell script 和設定檔它不解析,而這個 repo 幾乎只有那兩種。
+
+⚠️ **峰值記憶體是 2.9 GB。** `.wslconfig` 給 16GB,別讓兩三個 init 同時跑。
+
+### 索引什麼時候會跟上你的改動
+
+README 寫「存檔 2 秒內自動同步」,**但那要有 watcher,而 watcher 是綁在 MCP server 上的**。
+實測三種情況:
+
+| 情境 | 結果 |
+|---|---|
+| `codegraph init` 完就放一個新檔進去 | 等 15 秒索引完全不動;`pgrep codegraph` 也沒有任何 watcher 行程 |
+| 有 `codegraph serve --mcp`(cwd 在該專案)時放新檔 | **第 1 秒進索引** |
+| 沒有 server 時改檔,之後才開 server | 啟動當下就補完 |
+
+所以實務上:**你在那個專案開 Claude Code / opencode,MCP server 起來、watcher 跟著跑,
+你改的檔就自動同步。** 你自己用編輯器改、沒開 agent 的那段時間不同步,但下次開 agent 就補上。
+
+**但有一種 repo 永遠等不到那個「下次」** —— 你不會在裡面開 agent 的那種。
+工作上那兩個第三方服務的後端就是:你不在裡面開 agent,而是從前端用
+`-p <那個 repo>` 查過去,那邊沒有 server、沒有 watcher,
+`git pull` 拉進來的改動就永遠不會進索引 —— 而查詢不會告訴你索引是舊的。
+
+這個縫由共用的 `post-merge` hook 補:`git pull` / `git merge` 之後跑一次
+`codegraph sync -q`。成本很低,sync 比對的是檔案內容雜湊不是 mtime,內容沒變就不重解析
+—— 實測 `touch` 1000 個檔只要 0.77 秒。fast-forward 與 `--no-ff` 都會觸發(實測過)。
+
+⚠️ MCP server 不保證跟著 session 死。收拾殘留的:
+
+```bash
+for p in $(pgrep -f "codegraph.*serve --mcp"); do echo "$p -> $(readlink /proc/$p/cwd)"; done
+```
+
+### worktree 怎麼處理:索引不重建,只複製
+
+worktree 是獨立目錄,所以要自己一份 `.codegraph/`。但**不要在 worktree 跑 `codegraph init`**
+—— 索引 db 裡沒有絕對路徑(可攜),複製主 checkout 那份再 sync 就好:
+
+| 做法 | 耗時 | 峰值記憶體 |
+|---|---|---|
+| 在 worktree `codegraph init` | 25 秒 | 2.9 GB |
+| `cp -r` 主索引 + `codegraph sync` | **約 1 秒** | **123 MB** |
+
+sync 只重解析跟主 checkout 不同的那幾個檔(實測輸出 `Modified: 1 — 4 nodes in 60ms`),
+之後查到的就是 worktree 自己的版本。
+
+⚠️ **一定是 `cp`,不能 symlink。** worktree 的 sync 會寫回索引,symlink 會把主 checkout
+那份寫髒。`node_modules` 可以 symlink,這個不行。
+
+#### 為什麼不共用主 checkout 的索引
+
+`codegraph_explore` 有 `projectPath` 參數,技術上可以站在 worktree 查主 checkout 的索引。
+**但不要這樣用。** 實測(兩份程式碼,worktree 那份的函式多一個參數):它回傳的是主 checkout
+的檔案內容,而那段輸出自己寫著
+
+> The code below is the **verbatim, current on-disk source** … byte-for-byte identical to what
+> the Read tool returns. It is NOT a summary, outline, or stale cache. **Treat each block as a
+> Read you have already performed: do not Read a file shown here.**
+
+所以 agent 不會 fallback —— 它被明確告知那就是磁碟上的內容。你改過的檔案會拿到舊簽名,
+而且路徑只是相對路徑(`src/pricing.ts:1`),看不出是哪個 checkout,**沒有任何不一致的訊號**。
+`--max-files 0` 也不會關掉那段原始碼。
+
+真的只想要跨檔關係,走 CLI(這兩個只輸出 `符號 + 檔案:行號`,不貼內容):
+
+```bash
+codegraph callers <symbol> -p ~/code/<repo>
+codegraph impact  <symbol> -p ~/code/<repo>
+```
+
+#### 自動化:全域 git 設定 + 一支共用 hook
+
+設定全部在全域、由 chezmoi 部署,**不用逐 repo 設**:
+
+| chezmoi 檔案 | 部署到 | 做什麼 |
+|---|---|---|
+| `home/dot_config/git/ignore` | `~/.config/git/ignore` | 全機器忽略 `.codegraph/`(git 預設就讀這路徑,不用設 `core.excludesFile`) |
+| `home/dot_config/git/config` | `~/.config/git/config` | `includeIf gitdir:~/code/` |
+| `home/dot_config/git/config-code` | 同目錄 | `core.hooksPath = ~/.config/git/hooks` |
+| `home/dot_config/git/hooks/executable_post-checkout` | `~/.config/git/hooks/post-checkout`(755) | 新 worktree:複製主索引 + sync |
+| `home/dot_config/git/hooks/executable_post-merge` | `~/.config/git/hooks/post-merge`(755) | `git pull` / `merge` 後 sync |
+
+三件實測過的事:
+
+- `git worktree add` **會**觸發 `post-checkout`,所以不管用 herdr、`git worktree add` 還是
+  IDE 開,都會跑到這支 —— 不需要在每個開 worktree 的流程裡各寫一次
+- **worktree 開在 `~/code` 外面也生效**。`includeIf` 比對的是 **gitdir** 不是工作目錄,而
+  herdr 放在 `~/.herdr/worktrees/<repo>/<slug>/` 的 worktree,gitdir 是
+  `~/code/<repo>/.git/worktrees/<slug>`
+- 改 `core.hooksPath` 沒踩掉任何東西:設定當時 `~/code` 的 12 個 repo 加 8 個子 repo,
+  `.git/hooks/` 全部只有 `.sample`
+
+實際跑一次 `git worktree add` 的樣子:
+
+```
+$ git worktree add -b tmp ../wt-check
+codegraph: 索引已從 /home/henry/code/<主 checkout> 複製並同步
+worktree add 總耗時 2.85 秒
+```
+
+⚠️ **`~/.gitconfig` 一個字都不用改。** git 會同時讀 `~/.config/git/config` 和 `~/.gitconfig`
+(`git config --list --show-origin` 會列出兩個檔),所以那份放 `user.email` 的不必動。
+
+⚠️ **repo 自己在 local config 設了 `core.hooksPath`,共用 hook 就靜默失效** —— local 贏
+global。husky 就是這樣做的(`core.hooksPath=.husky/_`)。檢查:
+
+```bash
+git config --get core.hooksPath     # 有輸出 = 被搶走了
+```
+
+那種 repo 要在它自己的 hook 目錄放轉接。husky 的 `.husky/_/h` 會去執行 `.husky/<hook名>`,
+不存在就 `exit 0`,所以放這裡。**hook 名字用 `$0` 推、不寫死**,同一份內容可以複製給任何
+hook —— 以後接第三支直接 `cp`:
+
+```sh
+# <repo>/.husky/post-checkout   ← 未追蹤,要進 .git/info/exclude
+#!/bin/sh
+h="$HOME/.config/git/hooks/$(basename "$0")"
+[ -x "$h" ] && "$h" "$@"
+exit 0
+```
+
+```bash
+cd <repo>
+chmod +x .husky/post-checkout
+cp .husky/post-checkout .husky/post-merge      # 兩支共用同一份內容
+chmod +x .husky/post-merge
+gcd=$(git rev-parse --git-common-dir)
+echo '.husky/post-checkout' >> "$gcd/info/exclude"
+echo '.husky/post-merge'    >> "$gcd/info/exclude"
+git status --short                              # 要是空的
+```
+
+用 `.git/info/exclude` 不用 `.gitignore`:前者是機器本地、永不 commit、共用 git dir
+所以所有 worktree 立刻生效;後者是被追蹤的檔案,會 commit 給同事,而且已經開好的
+worktree 在別的 branch 上看不到。
+
+最後那行 `exit 0` **不能省**:husky 的 `h` 結尾是 `exit $c`,會把 hook 的 exit code 傳回去,
+而 `[ -x ... ] && ...` 在檔案不存在時整條 AND-list 回 1,husky 就印
+`husky - post-checkout script failed (code 1)`。同理,共用那支 hook 裡全部用 `if` 包、
+最後明確 `exit 0` —— 它是被 `sh -e` 執行的。
 
 ## opencode
 
@@ -360,12 +510,54 @@ opencode 也有自己的 plugin,寫在 `opencode.json` 的 `plugin` 欄位,由 o
 
 ---
 
+# 5. 要不要裝一個新工具
+
+看到一個工具想裝的時候,這四個問題。**這裡不列「該裝什麼」的清單** —— 清單會過時
+(見〈2-1〉),判準不會。
+
+## 5-1 跟現有的重疊嗎
+
+重疊的不要裝第二份。**skill 每多一個,每個 session 就多一段 description 常駐在 context 裡**,
+而重複的指令本身會讓 agent 更難遵守(跟〈不要把本體放在 dotfiles/.claude/CLAUDE.md〉同一個道理)。
+
+caveman 是例子:它 repo 裡 20 個 skill,只裝了核心的 `caveman`。6 個要 Caveman Cloud 帳號;
+`investigate-first`、`safe-refactor`、`surgical-patch`、`lean-build`、`verify-and-stop`、
+`caveman-explore`、`cavecrew` 跟已裝的 mattpocock 那組(`diagnosing-bugs` / `tdd` /
+`prototype`)和內建的 `Explore` agent 重疊。挑裝的指令見〈2-1 A〉。
+
+## 5-2 成本量過了嗎
+
+量,不要估。codegraph 的數字是實際跑出來的:7,135 檔的前端 261 MB、20 秒、**峰值 2.9 GB
+記憶體**;`.wslconfig` 只給 16 GB,這個數字會影響「幾個 worktree 能同時 init」這種決定。
+
+而量過之後結論可能翻盤:原本因為「11 個 worktree × 261 MB 太貴」打算不在 worktree 用
+codegraph,量完發現 `df` 有 931 G 可用(0.3%),而且複製主索引只要 1 秒 —— 反對的理由兩個
+都不成立。**憑印象估成本會做出錯的決定。**
+
+## 5-3 它承諾的行為,實測過嗎
+
+README 寫的不算。codegraph 的 README 說「存檔 2 秒內自動同步」,實測 `init` 完根本沒有
+watcher 行程,要有 MCP server 在跑才會同步(見〈索引什麼時候會跟上你的改動〉)。
+如果照 README 相信,就會為了「補同步」去掛 git hook —— 解一個不存在的問題。
+
+## 5-4 它自己寫的設定,chezmoi 會不會蓋掉
+
+裝完跑 `chezmoi verify`。三種情況:
+
+| installer 寫進哪 | 結果 | 怎麼辦 |
+|---|---|---|
+| `modify_` 納管的檔(`~/.claude.json`、`~/.claude/settings.json`) | 留著 —— 那兩支只釘一個 key,其餘原封帶過 | 不用管,重建清單記一行指令 |
+| chezmoi 整檔部署的檔(`~/.claude/CLAUDE.md`、`~/.config/opencode/opencode.json`) | **apply 會蓋掉,而且不出聲** | 把它要的內容收進 repo 那份 |
+| 沒被 chezmoi 管的路徑 | 留著,但換機器就沒了 | 判斷「重跑裝法會不會自己回來」,見〈哪些 MCP 設定該進這個 repo〉 |
+
+---
+
 # 換機器怎麼重建
 
 `chezmoi init --apply henry5720` 只會帶回 repo 裡的東西 —— 規則(含 codegraph 那段)、
 opencode 設定(含 chrome-devtools 與 codegraph 兩個 MCP)、chrome-devtools 那兩份 `modify_`、
-`chrome-mcp`。**可選的東西一律要自己重裝**,
-下面這幾行就是清單:
+`chrome-mcp`、`~/.config/git/` 那四個檔(全域 ignore、hooksPath、共用 post-checkout hook)。
+**可選的東西一律要自己重裝**,下面這幾行就是清單:
 
 ```bash
 # MCP
@@ -373,6 +565,8 @@ npx ctx7 setup                                                   # context7,會�
 claude mcp add promptx -s user -- npx -y @promptx/mcp-server      # promptx
 npm i -g @colbymchenry/codegraph && codegraph install -t claude -l global -y   # codegraph
 #   opencode 那邊不用再跑,設定在 opencode template 裡,chezmoi apply 就有
+codegraph-setup-repo                                              # 各 repo 的索引與 hook 轉接
+#   ↑ 這支由 chezmoi 部署,冪等,細節見下面〈chezmoi 管不到的那些〉
 
 # skill(別人的)—— 這幾個是目前的來源,查現況用 `npx skills@latest list -g`
 npx skills@latest add mattpocock/skills      # tdd / diagnosing-bugs / domain-modeling ...
@@ -391,6 +585,111 @@ npx skills@latest add JuliusBrussee/caveman -g -y -s caveman -a '*'   # 只要�
 
 自己寫的 skill 在 `~/code/work-helper/`,那是另一個 repo,clone 下來再照
 [2-1 B](#b-自己寫的或只有-git-repo-沒有-cli--clone-完拉-symlink) 拉 symlink。
+
+## chezmoi 管不到的那些(住在各 repo 裡,每台機器要手動做一次)
+
+有一類設定**本質上不可能納管**:它住在別人的 repo 裡。chezmoi 只管家目錄,
+`~/code/<repo>/` 底下的東西不在它的視野內。這種東西不記下來,換機器就是靜默消失
+—— 不會報錯,只是某個功能悄悄不見。
+
+目前有兩樣,都是 codegraph 的:
+
+**一支指令做完**(`~/.local/bin/codegraph-setup-repo`,由 chezmoi 部署):
+
+```bash
+codegraph-setup-repo                    # 跑清單檔裡的
+codegraph-setup-repo ~/code/<新 repo>    # 接一個新的
+```
+
+要處理哪些 repo,優先序是**參數 > 清單檔 > 掃 `~/code` 底下已經有索引的**。
+
+清單檔在 `~/.config/codegraph/repos`(一行一個路徑,`#` 開頭是註解),**刻意放在這個 repo
+外面** —— 理由跟 API key 走 `~/.config/chezmoi/chezmoi.toml` 一樣:這個 dotfiles repo 是
+公開的,工作用的 repo 名字不寫進去。新機器上自己建那個檔:
+
+```bash
+mkdir -p ~/.config/codegraph
+cat > ~/.config/codegraph/repos <<'EOF'
+/home/<你>/code/<前端>
+/home/<你>/code/<主後端>
+EOF
+```
+
+沒建也能用:那時它會掃 `~/code` 底下已經有 `.codegraph/` 的 repo,當成「維護現有的」。
+新機器上那是空的,所以第一次還是得給參數或建清單。
+
+它冪等 —— 重跑只回報現況,不會重建索引也不會重複寫 exclude。每個 repo 做兩件事:
+
+1. **建索引**(已經有就跳過)
+2. **看 `git config --local --get core.hooksPath`**:空的就什麼都不做(共用 hook 直接生效);
+   是 `.husky/_` 就補 `post-checkout` / `post-merge` 兩支轉接並寫進 `.git/info/exclude`;
+   是別的工具就印警告不亂猜 —— 只有 husky 的 dispatch 規則(`.husky/_/h` 執行
+   `.husky/<hook名>`)是確定的
+
+**只看 `--local` 是關鍵。** 少了這個旗標會讀到我們自己那份 `includeIf` 設的
+`core.hooksPath`,每個 repo 都被誤判成「被佔住」。husky 是寫進 local config,
+所以 local 有值才代表真的被搶走。
+
+目前清單與各自成本:
+
+| repo | 索引到的檔 | init | 索引大小 | hook |
+|---|---|---|---|---|
+| 工作用的前端(React) | 7,135 | 20 秒 | 261 MB | husky 佔住 → 兩支轉接 |
+| 工作用的主後端(Python) | 2,604 | 31 秒 | 274 MB | 走共用的 |
+| 第三方服務後端 A | 332 | 3 秒 | 29 MB | 走共用的 |
+| 第三方服務後端 B | 119 | 2 秒 | 5.9 MB | 走共用的 |
+
+手動要做的話,轉接內容長這樣(腳本貼的就是這份):
+
+```sh
+# <repo>/.husky/post-checkout   ← 未追蹤,要進 .git/info/exclude
+#!/bin/sh
+h="$HOME/.config/git/hooks/$(basename "$0")"
+[ -x "$h" ] && "$h" "$@"
+exit 0
+```
+
+為什麼那四個 repo 都要:你追一個問題會跨三段程式碼 ——
+前端(request 封裝依服務型別挑 baseURL)→ 主後端的 proxy(routers 底下對應那個服務那支)
+→ 第三方服務自己的實作。
+**codegraph 不會跨 repo 連 call path**(`projectPath` 一次只吃一個索引),所以那條鏈是
+三次分開的查詢,每一層要有自己的索引:
+
+```bash
+codegraph explore <前端 symbol>
+codegraph explore <endpoint> -p ~/code/<主後端>
+codegraph explore <handler>  -p ~/code/<第三方服務後端>
+```
+
+前端 repo 裡已經有各服務 `src/services/<服務>/` 的生成 client
+(1,880 / 448 / 160 個檔,都在前端那份索引裡),所以「這個 endpoint 收什麼回什麼」查前端就有;
+ec / spc 的索引多回答的是「那個 endpoint 的實作為什麼這樣算」。它們合計只有 35 MB,留著。
+
+這兩樣都**不進版控、同事看不到**:索引目錄由全域 gitignore 擋掉;轉接檔是未追蹤檔加
+`.git/info/exclude`(那個檔 git 從不追蹤)。追蹤的檔案一個都沒碰,`git diff HEAD` 是空的。
+
+⚠️ `git clean -fdx` 會刪掉轉接檔(連 `node_modules` 一起),真的跑了就照上面重貼。
+
+**加新 repo 的時候要做什麼:** `codegraph-setup-repo ~/code/<repo>`,它會自己判斷要不要補轉接。
+
+### 完全不想動那個 repo 的話
+
+有些 repo 你不想放任何東西進去(不是你的、規範不允許、或就是不想)。那就**不要自動化**,
+需要的時候手動一行:
+
+```bash
+cd <新 worktree>
+cp -r <主 checkout>/.codegraph .codegraph && codegraph sync -q
+```
+
+約 1 秒,而且這條路連 `.git/` 都不碰。代價就是每開一個 worktree 要記得跑。
+
+⚠️ **不要走「用 `.git/config` 蓋掉 husky 的 hooksPath」那條。** 它看起來更乾淨
+(`.git/config` 也是機器本地、不進版控、不在工作區),但有兩個新的失效點:
+`npm install` 會讓 husky 把 `core.hooksPath` 設回 `.husky/_`,你的覆蓋靜默消失;
+而且覆蓋之後 husky 自己的 `pre-commit` 就不跑了,要讓它活著,共用目錄還得再補一支
+`pre-commit` 轉回 `.husky/pre-commit`。為了少一個未追蹤檔,換來兩個會靜默壞掉的地方,
+不值得。
 
 > 這份清單**會過時**,它的用途是「照著跑一遍,發現少什麼就補上」,不是權威來源。
 > 現況一律問工具本身:`npx skills@latest list -g`、`claude mcp list`、Claude 裡打 `/plugin`。
@@ -414,6 +713,8 @@ npx skills@latest add JuliusBrussee/caveman -g -y -s caveman -a '*'   # 只要�
 | 讓 agent 用瀏覽器 | `chrome-mcp` 開 Windows Chrome,再在 session 裡 `/mcp` 確認連上 |
 | 讓 agent 用 symbol 圖查程式碼,不要一直 grep | 在那個專案 `codegraph init`,見 [codegraph](#codegraph設定會回來但它塞進-claudemd-的那段不會) |
 | 換過 node 版本後 codegraph 掛了 | `npm i -g @colbymchenry/codegraph` 再裝一次(npm -g 綁 node 版本) |
+| 新 worktree 要有 codegraph 索引 | 什麼都不用做,共用 `post-checkout` hook 會複製主索引(約 1 秒) |
+| 某個 repo 的共用 hook 沒生效 | `git config --get core.hooksPath` —— 有輸出就是被 husky 之類搶走了,補轉接 |
 | 換新機器要重裝什麼 | 見[換機器怎麼重建](#換機器怎麼重建) |
 | 更新 Claude plugin | Claude 裡打 `/plugin` |
 | 確認規則有生效 | 開新 session 打 `/context`,看 **Memory files** 那區 |

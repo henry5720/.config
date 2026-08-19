@@ -1,0 +1,8 @@
+# 全域 gitignore。git 預設就讀這個路徑($XDG_CONFIG_HOME/git/ignore),
+# 不需要設 core.excludesFile。它不動任何 repo 的檔案。
+
+# codegraph 的索引:每台機器自己的 sqlite db,而且每個 worktree 一份。
+# 目錄裡自帶一份 .gitignore(`*` 加 `!.gitignore`),所以 db 本身不會進版控,
+# 但目錄還是會出現在 git status 的 untracked —— 在這裡一次擋掉,
+# 就不用去每個 repo 的 .git/info/exclude 各加一行。
+.codegraph/

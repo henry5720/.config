@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# 把一個 repo 接上 codegraph:建索引,必要時補 hook 轉接。
+#
+# 冪等 —— 重跑只會回報現況,不會重建索引也不會重複寫 exclude。
+# 沒給參數就跑內建清單(目前實際在用的那幾個)。
+#
+# 為什麼需要這支:大部分設定已經在 ~/.config/git/ 由 chezmoi 管好了,但有兩樣
+# 住在 repo 裡、chezmoi 碰不到 —— 索引本身,以及「repo 自己搶走 core.hooksPath」
+# 時要補的轉接。那個轉接是五行 shell,打錯一個字是靜默失效(hook 不跑跟 hook 跑了
+# 沒事長得一樣),所以寧願讓腳本貼。
+
+set -euo pipefail
+
+SHARED_HOOKS="$HOME/.config/git/hooks"
+HOOKS=(post-checkout post-merge)
+
+# 要處理哪些 repo。優先序:命令列參數 > 清單檔 > 掃 ~/code 底下已經有索引的。
+#
+# 清單放在 repo 外(`~/.config/codegraph/repos`,一行一個路徑,`#` 開頭是註解),
+# 理由跟 API key 走 `~/.config/chezmoi/chezmoi.toml` 一樣 —— 這個 dotfiles repo
+# 是公開的,工作用的 repo 名字不寫進去。新機器上自己建那個檔。
+REPO_LIST="${CODEGRAPH_REPOS:-$HOME/.config/codegraph/repos}"
+
+repos=("$@")
+if [ ${#repos[@]} -eq 0 ] && [ -f "$REPO_LIST" ]; then
+	while IFS= read -r line; do
+		case "$line" in ''|'#'*) continue;; esac
+		repos+=("${line/#\~/$HOME}")
+	done < "$REPO_LIST"
+fi
+if [ ${#repos[@]} -eq 0 ]; then
+	# 沒有清單檔:掃 ~/code 底下已經建過索引的,當成「維護現有的」
+	for d in "$HOME"/code/*/; do
+		[ -d "${d}.codegraph" ] && repos+=("${d%/}")
+	done
+fi
+if [ ${#repos[@]} -eq 0 ]; then
+	echo "沒有要處理的 repo。給路徑當參數,或建一份 $REPO_LIST(一行一個)。" >&2
+	exit 0
+fi
+
+command -v codegraph >/dev/null 2>&1 || {
+	echo "找不到 codegraph。先 npm i -g @colbymchenry/codegraph" >&2
+	exit 1
+}
+[ -d "$SHARED_HOOKS" ] || {
+	echo "找不到 $SHARED_HOOKS。先 chezmoi apply ~/.config/git" >&2
+	exit 1
+}
+
+for repo in "${repos[@]}"; do
+	echo "── $repo"
+
+	if [ ! -d "$repo" ]; then
+		echo "   ✗ 目錄不存在,跳過"
+		continue
+	fi
+	if ! git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
+		echo "   ✗ 不是 git repo,跳過"
+		continue
+	fi
+
+	# 1. 索引
+	if [ -d "$repo/.codegraph" ]; then
+		echo "   索引:已存在($(du -sh "$repo/.codegraph" | cut -f1))"
+	else
+		echo "   索引:建立中…"
+		( cd "$repo" && codegraph init >/dev/null 2>&1 )
+		echo "   索引:好了($(du -sh "$repo/.codegraph" | cut -f1))"
+	fi
+
+	# 2. hook —— 只看 --local。不加的話會讀到我們自己那份 includeIf 設的
+	#    core.hooksPath,每個 repo 都被誤判成「被佔住」。husky 是寫進 local config,
+	#    所以 local 有值才代表真的被搶走。
+	hp=$(git -C "$repo" config --local --get core.hooksPath || true)
+	if [ -z "$hp" ]; then
+		echo "   hook:走共用的 $SHARED_HOOKS,不用碰這個 repo"
+		continue
+	fi
+
+	# hooksPath 被搶走了。只認 husky 那種形狀(.husky/_),因為只有它會去
+	# dispatch 到 .husky/<hook名>。其他工具的規則不知道,不亂猜。
+	case "$hp" in
+		*.husky/_|*.husky/_/)
+			shim_dir="$repo/$(dirname "${hp%/}")"   # .husky/_ -> .husky
+			;;
+		*)
+			echo "   ⚠ hook:core.hooksPath=$hp 被別的工具佔住,而它不是 husky。"
+			echo "     共用 hook 對這個 repo 無效,要自己看那個工具怎麼 dispatch。"
+			continue
+			;;
+	esac
+
+	gcd=$(git -C "$repo" rev-parse --git-common-dir)
+	case "$gcd" in /*) ;; *) gcd="$repo/$gcd";; esac
+
+	for h in "${HOOKS[@]}"; do
+		shim="$shim_dir/$h"
+		if [ ! -e "$shim" ]; then
+			cat > "$shim" <<'SHIM'
+#!/bin/sh
+# 轉接到共用 hook（~/.config/git/hooks/，由 chezmoi 部署）。
+# 這個 repo 的 core.hooksPath 被 husky 佔住，而 git 的 local 贏 global，
+# 所以共用那份 hooksPath 對它無效。husky 的 .husky/_/h 會執行 .husky/<hook名>。
+#
+# hook 名字用 $0 推、不寫死：同一份內容可以複製給任何 hook。
+# 最後 exit 0 不能省：husky 的 h 結尾是 exit $c，而 [ -x ... ] && ... 在檔案
+# 不存在時整條 AND-list 回 1，husky 會印 script failed。
+h="$HOME/.config/git/hooks/$(basename "$0")"
+[ -x "$h" ] && "$h" "$@"
+exit 0
+SHIM
+			chmod +x "$shim"
+			echo "   hook:建了 $(basename "$shim_dir")/$h 轉接"
+		else
+			echo "   hook:$(basename "$shim_dir")/$h 轉接已存在"
+		fi
+
+		# 讓它不出現在 git status。用 .git/info/exclude 不用 .gitignore:
+		# 前者機器本地、永不 commit、共用 git dir 所以所有 worktree 立刻生效。
+		rel="$(basename "$shim_dir")/$h"
+		if grep -qxF "$rel" "$gcd/info/exclude" 2>/dev/null; then
+			echo "   exclude:$rel 已排除"
+		else
+			echo "$rel" >> "$gcd/info/exclude"
+			echo "   exclude:加了 $rel"
+		fi
+	done
+
+	dirty=$(git -C "$repo" status --short | wc -l)
+	if [ "$dirty" -eq 0 ]; then
+		echo "   ✓ git status 乾淨"
+	else
+		echo "   ⚠ git status 有 $dirty 行 —— 不一定是這支造成的,自己看一下"
+	fi
+done
