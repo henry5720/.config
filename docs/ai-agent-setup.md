@@ -210,23 +210,36 @@ claude mcp list                                  # 看現況
 `-s user` 的設定存在 `~/.claude.json`;`-s project` 存在該 repo 根目錄的 `.mcp.json`。
 session 裡打 `/mcp` 可以看目前連上了哪些。
 
+### 哪些 MCP 設定該進這個 repo
+
+判準只有一句:**重跑一次官方裝法,這個設定會不會自己回來?**
+
+| | 會回來 | 不會回來 |
+|---|---|---|
+| 例子 | context7(`npx ctx7 setup` 一行搞定)、promptx | chrome-devtools 那四個參數 |
+| 怎麼辦 | 不進 repo,在下面[換機器怎麼重建](#換機器怎麼重建)記一行指令 | 進 repo |
+
+會回來的東西抄進 repo 只有壞處:上游改了裝法,你 repo 裡那份就變成凍住的舊版本
+(這跟[為什麼別人的 skill 不進 dotfiles](#2-3-為什麼別人的-skill-不進-dotfiles)是同一個道理)。
+
+chrome-devtools 是唯一的例外,因為官方裝法
+`claude mcp add chrome-devtools npx chrome-devtools-mcp@latest` 生出來的設定**是壞的** ——
+少了 `--browser-url`,在 WSL 上跑不起來。那份設定裡有四個重跑 installer 不會回來的決定,
+所以用 chezmoi 的 `modify_` 納管:見 [chrome-devtools-mcp.md](chrome-devtools-mcp.md)。
+
 ## opencode
 
 寫在 `home/dot_config/opencode/private_opencode.json.tmpl`(部署成權限 600 的
 `~/.config/opencode/opencode.json`)的 `mcp` 欄位,格式是每個 server 一段 `command` 陣列。
 
-目前接了 `context7`、`sequential-thinking`、`chrome-devtools`,外加 `opencode-wakatime` 外掛。
-`chrome-devtools` 從 WSL 經 mirrored networking 連到 Windows 的 `127.0.0.1:9222`,不會在
-WSL 另開 Chrome。Windows Chrome 必須用非預設 profile 啟動:
+repo 裡只留 `chrome-devtools`,外加 `opencode-wakatime` 外掛。它從 WSL 經 mirrored
+networking 連到 Windows 的 `127.0.0.1:9222`,不會在 WSL 另開 Chrome ——
+啟動方式、獨立 profile、排錯全在 [chrome-devtools-mcp.md](chrome-devtools-mcp.md)。
 
-```powershell
-& "$env:ProgramFiles\Google\Chrome\Application\chrome.exe" `
-  --remote-debugging-port=9222 `
-  --user-data-dir="$env:LOCALAPPDATA\ChromeDevToolsMCP"
-```
-
-`9222` 等於完整瀏覽器控制權,只綁 localhost,不要對 LAN 或網際網路開放。這個獨立 profile
-第一次要手動登入;之後會保留 cookie 和登入狀態。
+`context7` 和 `sequential-thinking` 以前也寫在這裡,已經拿掉:
+context7 走 `npx ctx7 setup`(官方 CLI,會偵測裝了哪些 agent 讓你選),寫進 repo 只是把舊裝法
+凍住;sequential-thinking 則是 Anthropic 從 2025-12 起建議改用 extended thinking 取代,
+而且長 session 記憶體會漲到 10GB 以上。
 
 ### provider 與 API key
 
@@ -260,6 +273,41 @@ opencode 也有自己的 plugin,寫在 `opencode.json` 的 `plugin` 欄位,由 o
 
 ---
 
+# 換機器怎麼重建
+
+`chezmoi init --apply henry5720` 只會帶回 repo 裡的東西 —— 規則、opencode 設定、
+chrome-devtools 那兩份 `modify_`、`chrome-mcp`。**可選的東西一律要自己重裝**,
+下面這幾行就是清單:
+
+```bash
+# MCP
+npx ctx7 setup                                                   # context7,會問要裝給哪些 agent
+claude mcp add promptx -s user -- npx -y @promptx/mcp-server      # promptx
+
+# skill(別人的)—— 這幾個是目前的來源,查現況用 `npx skills@latest list -g`
+npx skills@latest add mattpocock/skills      # tdd / diagnosing-bugs / domain-modeling ...
+npx skills@latest add Leonxlnx/taste-skill   # 前端設計品味那一組
+npx skills@latest add vercel-labs/skills     # find-skills
+npx skills@latest add stablyai/orca          # computer-use / orca-cli
+
+# Claude plugin —— 這幾個要在 Claude 裡打 /plugin 一個一個裝
+#   claude-hud(需先加 marketplace jarrodwatts/claude-hud)
+#   andrej-karpathy-skills(需先加 marketplace forrestchang/andrej-karpathy-skills)
+#   context7 / typescript-lsp / frontend-design / skill-creator(官方 marketplace)
+#   chrome-devtools-mcp —— 不要開,repo 裡那份 modify_ 會把它設成 false,理由見
+#   chrome-devtools-mcp.md
+```
+
+自己寫的 skill 在 `~/code/work-helper/`,那是另一個 repo,clone 下來再照
+[2-1 B](#b-自己寫的或只有-git-repo-沒有-cli--clone-完拉-symlink) 拉 symlink。
+
+> 這份清單**會過時**,它的用途是「照著跑一遍,發現少什麼就補上」,不是權威來源。
+> 現況一律問工具本身:`npx skills@latest list -g`、`claude mcp list`、Claude 裡打 `/plugin`。
+> 這跟 [2-1](#a-別人的而且有-cli--用-npx-skills) 說的「不列清單」不衝突 ——
+> 那裡講的是「現在裝了哪些」(會一直變),這裡列的是「重建步驟」。
+
+---
+
 # 懶人包
 
 | 想做什麼 | 怎麼做 |
@@ -272,5 +320,7 @@ opencode 也有自己的 plugin,寫在 `opencode.json` 的 `plugin` 欄位,由 o
 | 只給某個專案用的 skill | 放 `<那個repo>/.claude/skills/<名字>/` |
 | 更新 skill | `npx skills@latest update -g -y` |
 | 接一個 MCP | `claude mcp add <名字> -s user -- npx -y <套件名>` |
+| 讓 agent 用瀏覽器 | `chrome-mcp` 開 Windows Chrome,再在 session 裡 `/mcp` 確認連上 |
+| 換新機器要重裝什麼 | 見[換機器怎麼重建](#換機器怎麼重建) |
 | 更新 Claude plugin | Claude 裡打 `/plugin` |
 | 確認規則有生效 | 開新 session 打 `/context`,看 **Memory files** 那區 |

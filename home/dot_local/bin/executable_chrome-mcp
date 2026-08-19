@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# 啟動 Windows 側的 Chrome 並開 remote debugging port,給 chrome-devtools MCP 連。
+# WSL 這邊不裝 Linux Chrome —— 設定本來就是連 Windows 那台,在 WSL 另開一個是白費工。
+# 背景與排錯見 docs/chrome-devtools-mcp.md。
+
+set -euo pipefail
+
+PORT=9222
+PROFILE_NAME=ChromeDevToolsMCP
+
+# 1. 已經在跑就直接結束。這一步不是禮貌,是必要的:Chrome 已有實例時,再下一次帶參數的啟動
+#    會被轉交給既有實例、新參數整組被忽略、而且不報錯。少了這個檢查,你會看到
+#    「指令跑完、沒有錯誤、MCP 還是連不上」,那是最難查的一種。
+if curl -fsS --max-time 2 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1; then
+  echo "Chrome 已經在 127.0.0.1:$PORT 上跑了,不用再開。"
+  exit 0
+fi
+
+# 2. 找 chrome.exe。64 位元裝在 Program Files,舊的 32 位元在 Program Files (x86)。
+chrome=""
+for candidate in \
+  "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe" \
+  "/mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe"
+do
+  [ -x "$candidate" ] && { chrome="$candidate"; break; }
+done
+if [ -z "$chrome" ]; then
+  echo "找不到 chrome.exe。裝在別的位置的話改這支 script 的候選清單。" >&2
+  exit 1
+fi
+
+# 3. 問 Windows 自己的 %LOCALAPPDATA%,不要寫死 C:\Users\henry ——
+#    --user-data-dir 要的是 Windows 路徑格式,而使用者名稱換台機器就不一樣。
+#    cd /mnt/c 是為了避開 cmd.exe 對 UNC 路徑的警告。
+localappdata=$(cd /mnt/c && cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r')
+if [ -z "$localappdata" ]; then
+  echo "問不到 Windows 的 %LOCALAPPDATA%,確認 WSL interop 有開(cmd.exe 叫得動)。" >&2
+  exit 1
+fi
+profile="${localappdata}\\${PROFILE_NAME}"
+
+# 4. 背景啟動。用獨立 profile 而不是你平常那個:平常那個開著的時候 Chrome 不會理
+#    --remote-debugging-port,而且讓 agent 碰你日常瀏覽的 session 也不是好主意。
+echo "啟動 Chrome(profile: ${profile})..."
+nohup "$chrome" \
+  --remote-debugging-port="$PORT" \
+  --user-data-dir="$profile" \
+  >/dev/null 2>&1 &
+disown
+
+# 5. 等 port 真的起來再回報。不等的話這支 script 會在 Chrome 還沒開完時就說成功。
+for _ in $(seq 1 15); do
+  if curl -fsS --max-time 1 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1; then
+    echo "好了,127.0.0.1:$PORT 通了。"
+    exit 0
+  fi
+  sleep 1
+done
+
+echo "等了 15 秒 127.0.0.1:$PORT 還是不通。" >&2
+echo "檢查 .wslconfig 是不是 networkingMode=mirrored —— 不是的話 WSL 連不到 Windows 的 localhost。" >&2
+exit 1

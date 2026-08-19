@@ -9,6 +9,7 @@
 | 文件 | 什麼時候讀 |
 |---|---|
 | [`docs/ai-agent-setup.md`](docs/ai-agent-setup.md) | 想搞懂 agent 規則 / skill / MCP / plugin 各是什麼、放哪、怎麼更新。**新機器設定 AI 工具前先讀這份。** |
+| [`docs/chrome-devtools-mcp.md`](docs/chrome-devtools-mcp.md) | 想讓 agent 開瀏覽器,或 chrome-devtools MCP 連不上(`Target closed`)的時候。含 `chrome-mcp` 用法與為什麼不裝 Linux Chrome。 |
 | [`docs/code-server-remote.md`](docs/code-server-remote.md) | 想從 pad / 手機連自己的 code-server,卡在憑證和 secure context 的時候。列出五種做法與各自代價。 |
 | [`docs/herdr-notifications.md`](docs/herdr-notifications.md) | Herdr 在 WSL2 沒有通知音、SSH 回來後失聲,或要確認 `paplay` / WSLg PulseAudio 時。 |
 | [`docs/tmux-workflow.md`](docs/tmux-workflow.md) | 想搞懂 tmux 的狀態列、session 管理、agent 自動化腳本各是什麼,或狀態列少了東西要查為什麼。 |
@@ -24,6 +25,9 @@
 | `home/dot_tmux.conf` + `home/dot_config/tmux/` | `~/.tmux.conf` + `~/.config/tmux/` | 高度客製的 tmux:TPM 外掛、狀態列、編號 session 管理,以及大量 AI-agent 自動化腳本。 | [tmux-workflow.md](docs/tmux-workflow.md) |
 | `home/private_dot_ssh/private_config` | `~/.ssh/config`(600) | SSH 連線設定:GitHub、Tailscale 節點、Oracle VPS 兩個 tenancy、Termux(port 8022)。**不含私鑰** —— `~/.ssh/henry5720` 要自己放好並 `chmod 600`,否則所有連線失敗。 | [檔案內有逐段註解](home/private_dot_ssh/private_config) |
 | `home/dot_claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | **agent 規則的單一來源**,opencode 那邊 symlink 過來。只寫「換到任何 repo 都還成立」的事。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
+| `home/modify_private_dot_claude.json` | `~/.claude.json`(600) | **就地改**,不是整份部署:只塞 Claude Code 的 `mcpServers["chrome-devtools"]`。那個檔 2200 行裡 99% 是 session 狀態與帳號資訊,不進公開 repo。 | [chrome-devtools-mcp.md](docs/chrome-devtools-mcp.md) |
+| `home/dot_claude/modify_settings.json` | `~/.claude/settings.json` | 同上,只釘一個 key:關掉官方那個在 WSL 跑不起來的 chrome-devtools plugin。 | [chrome-devtools-mcp.md](docs/chrome-devtools-mcp.md) |
+| `home/dot_local/bin/executable_chrome-mcp` | `~/.local/bin/chrome-mcp`(755) | 開 Windows 側 Chrome 的 remote debugging port 給 MCP 連;已經在跑就直接結束。 | [chrome-devtools-mcp.md](docs/chrome-devtools-mcp.md) |
 | `home/dot_config/nvim/` | `~/.config/nvim/` | 只有 `lua/config/options.lua`(設 `vim.g.clipboard`:SSH 走 OSC 52,否則用 Termux 剪貼簿),**非完整 nvim 設定**,需搭配既有 LazyVim 基底。 | — |
 | `home/dot_config/opencode/` | `~/.config/opencode/` | [opencode](https://opencode.ai) 的 MCP servers 與外掛,**不含模型供應商**,clone 下來要自己 `opencode auth login`。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
 | `home/dot_config/private_code-server/` | `~/.config/code-server/`(目錄 700 / 檔案 600) | code-server 設定 template,密碼由 chezmoi 帶入。 | [code-server-remote.md](docs/code-server-remote.md) |
