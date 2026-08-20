@@ -280,8 +280,10 @@ codegraph install -t claude -l global -y   # 寫 MCP 設定進 Claude Code(user 
 
 > 裝完跑一次 `chezmoi verify`。實測第一次 `codegraph install` 之後 `~/.claude.json` 的權限
 > 從 600 變成 644(repo 那份是 `modify_private_dot_claude.json`,前綴 `private_` 就是 600)。
-> 重跑 `codegraph install --refresh` 不會重現,所以兇手不確定是它還是 Claude Code 自己寫檔;
-> 反正 `chmod 600 ~/.claude.json` 就好 —— 那個檔裡有帳號資訊,644 表示同機其他使用者讀得到。
+> 兇手就是 `codegraph install`。2026-08-20 在一台沒裝過 codegraph 的機器上重量一次:裝前
+> `stat -c %a ~/.claude.json` 是 600,只跑了 `codegraph install -t claude -l global -y`,
+> 裝完立刻變 644。重跑 `codegraph install --refresh` 不會重現,所以只發生在第一次寫入。
+> `chmod 600 ~/.claude.json` 修掉 —— 那個檔裡有帳號資訊,644 表示同機其他使用者讀得到。
 
 ### codegraph 的索引是每個專案自己的事
 
@@ -572,7 +574,6 @@ codegraph-setup-repo                                              # 各 repo 的
 npx skills@latest add mattpocock/skills      # tdd / diagnosing-bugs / domain-modeling ...
 npx skills@latest add Leonxlnx/taste-skill   # 前端設計品味那一組
 npx skills@latest add vercel-labs/skills     # find-skills
-npx skills@latest add stablyai/orca          # computer-use / orca-cli
 npx skills@latest add JuliusBrussee/caveman -g -y -s caveman -a '*'   # 只要核心那一個,理由見 2-1
 
 # Claude plugin —— 這幾個要在 Claude 裡打 /plugin 一個一個裝

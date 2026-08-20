@@ -77,7 +77,7 @@ script 做三件事,每件都是踩過才加的:
 
 `~/.claude.json` 有 2200 行,裡面 99% 是 Claude Code 自己寫的狀態:開過哪些專案的絕對路徑、
 帳號 email、feature flag 快取。**這個 repo 是公開的**,整份納管等於把那些推上 GitHub。
-`~/.claude/settings.json` 同理,裡面有 orca 的 hook 路徑、claude-hud 的 statusLine、
+`~/.claude/settings.json` 同理,裡面有 herdr 與 codegraph 的 hook、claude-hud 的 statusLine、
 一整塊機器描述。
 
 chezmoi 的 [`modify_`](https://www.chezmoi.io/reference/target-types/#modify_-scripts) 正是為這種

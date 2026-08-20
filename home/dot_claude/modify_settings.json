@@ -1,5 +1,5 @@
 #!/bin/sh
-# ~/.claude/settings.json 這份大部分不該納管:orca 的 hook 路徑、claude-hud 的 statusLine、
+# ~/.claude/settings.json 這份大部分不該納管:herdr 與 codegraph 的 hook、claude-hud 的 statusLine、
 # autoMode.environment 一整塊機器描述,都是工具自己寫進去、而且會一直變的東西。
 # 所以同樣走 modify_,只釘一個 key。
 #
