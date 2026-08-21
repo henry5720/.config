@@ -236,7 +236,7 @@ session 裡打 `/mcp` 可以看目前連上了哪些。
 | | 會回來 | 不會回來 |
 |---|---|---|
 | 例子 | context7(`npx ctx7 setup` 一行搞定)、promptx | chrome-devtools 那四個參數 |
-| 怎麼辦 | 不進 repo,在下面[換機器怎麼重建](#換機器怎麼重建)記一行指令 | 進 repo |
+| 怎麼辦 | 不進 repo,在[新機器設定 Runbook](new-machine-setup.md)記一行指令 | 進 repo |
 
 會回來的東西抄進 repo 只有壞處:上游改了裝法,你 repo 裡那份就變成凍住的舊版本
 (這跟[為什麼別人的 skill 不進 dotfiles](#2-3-為什麼別人的-skill-不進-dotfiles)是同一個道理)。
@@ -556,175 +556,13 @@ watcher 行程,要有 MCP server 在跑才會同步(見〈索引什麼時候會�
 
 # 換機器怎麼重建
 
-`chezmoi init --apply henry5720` 只會帶回 repo 裡的東西 —— 規則(含 codegraph 那段)、
-opencode 設定(含 chrome-devtools 與 codegraph 兩個 MCP)、chrome-devtools 那兩份 `modify_`、
-`chrome-mcp`、`~/.config/git/` 那四個檔(全域 ignore、hooksPath、共用 post-checkout hook)。
-**可選的東西一律要自己重裝**,下面這幾行就是清單:
+完整的新機器順序已移到 [new-machine-setup.md](new-machine-setup.md)。這份文件保留
+agent、MCP、skill、plugin、OpenCode 與 codegraph 的「誰管什麼」和日常操作;換機器時
+照 Runbook 的順序,再從這裡連到各工具的細節,不要把整份設定手抄進 repo。
 
-```bash
-# MCP
-npx ctx7 setup                                                   # context7,會問要裝給哪些 agent
-claude mcp add promptx -s user -- npx -y @promptx/mcp-server      # promptx
-npm i -g @colbymchenry/codegraph && codegraph install -t claude -l global -y   # codegraph
-#   opencode 那邊不用再跑,設定在 opencode template 裡,chezmoi apply 就有
-codegraph-setup-repo                                              # 各 repo 的索引與 hook 轉接
-#   ↑ 這支由 chezmoi 部署,冪等,細節見下面〈chezmoi 管不到的那些〉
-
-# skill(別人的)—— 這幾個是目前的來源,查現況用 `npx skills@latest list -g`
-npx skills@latest add mattpocock/skills      # tdd / diagnosing-bugs / domain-modeling ...
-npx skills@latest add Leonxlnx/taste-skill   # 前端設計品味那一組
-npx skills@latest add vercel-labs/skills     # find-skills
-npx skills@latest add JuliusBrussee/caveman -g -y -s caveman -a '*'   # 只要核心那一個,理由見 2-1
-
-# Claude plugin —— 這幾個要在 Claude 裡打 /plugin 一個一個裝
-#   claude-hud(需先加 marketplace jarrodwatts/claude-hud)
-#   andrej-karpathy-skills(需先加 marketplace forrestchang/andrej-karpathy-skills)
-#   context7 / typescript-lsp / frontend-design / skill-creator(官方 marketplace)
-#   chrome-devtools-mcp —— 不要開,repo 裡那份 modify_ 會把它設成 false,理由見
-#   chrome-devtools-mcp.md
-```
-
-## oh-my-opencode-slim + Claude Code ACP
-
-換新機器時,先部署 chezmoi 管理的 OpenCode core config 與
-oh-my-opencode-slim agent preset,再執行 OmO installer:
-
-```bash
-chezmoi init --apply henry5720
-npx --yes oh-my-opencode-slim@latest install --no-tui --skills=yes --background-subagents=no --companion=no
-source ~/.zshrc
-claude auth status
-# 上一行顯示尚未登入時才執行:
-claude auth login
-```
-
-installer 偵測到已部署的 config 時會保留 config;這裡使用它是為了安裝／同步
-bundled skills,不是讓它覆蓋 chezmoi 的設定。Claude Code ACP 的 `npx` adapter 由
-config 按需啟動,不需要 `npm i -g @agentclientprotocol/claude-agent-acp`。
-
-Claude OAuth 登入狀態只存在這台機器,不能搬移,也不能放進 repo。完成登入後,開啟
-`opencode`,輸入 `ping all agents` 驗證;也可以用 `@claude-code` 做一個短測試。
-
-Herdr 是選配,不在跨機器必要設定內。只有想要 live pane 時才自行安裝 Herdr,再執行:
-
-```bash
-herdr integration install opencode
-```
-
-這不影響 OmO 的 background agents。
-
-自己寫的 skill 在 `~/code/work-helper/`,那是另一個 repo,clone 下來再照
-[2-1 B](#b-自己寫的或只有-git-repo-沒有-cli--clone-完拉-symlink) 拉 symlink。
-
-## chezmoi 管不到的那些(住在各 repo 裡,每台機器要手動做一次)
-
-有一類設定**本質上不可能納管**:它住在別人的 repo 裡。chezmoi 只管家目錄,
-`~/code/<repo>/` 底下的東西不在它的視野內。這種東西不記下來,換機器就是靜默消失
-—— 不會報錯,只是某個功能悄悄不見。
-
-目前有兩樣,都是 codegraph 的:
-
-**一支指令做完**(`~/.local/bin/codegraph-setup-repo`,由 chezmoi 部署):
-
-```bash
-codegraph-setup-repo                    # 跑清單檔裡的
-codegraph-setup-repo ~/code/<新 repo>    # 接一個新的
-```
-
-要處理哪些 repo,優先序是**參數 > 清單檔 > 掃 `~/code` 底下已經有索引的**。
-
-清單檔在 `~/.config/codegraph/repos`(一行一個路徑,`#` 開頭是註解),**刻意放在這個 repo
-外面** —— 理由跟 API key 走 `~/.config/chezmoi/chezmoi.toml` 一樣:這個 dotfiles repo 是
-公開的,工作用的 repo 名字不寫進去。新機器上自己建那個檔:
-
-```bash
-mkdir -p ~/.config/codegraph
-cat > ~/.config/codegraph/repos <<'EOF'
-/home/<你>/code/<前端>
-/home/<你>/code/<主後端>
-EOF
-```
-
-沒建也能用:那時它會掃 `~/code` 底下已經有 `.codegraph/` 的 repo,當成「維護現有的」。
-新機器上那是空的,所以第一次還是得給參數或建清單。
-
-它冪等 —— 重跑只回報現況,不會重建索引也不會重複寫 exclude。每個 repo 做兩件事:
-
-1. **建索引**(已經有就跳過)
-2. **看 `git config --local --get core.hooksPath`**:空的就什麼都不做(共用 hook 直接生效);
-   是 `.husky/_` 就補 `post-checkout` / `post-merge` 兩支轉接並寫進 `.git/info/exclude`;
-   是別的工具就印警告不亂猜 —— 只有 husky 的 dispatch 規則(`.husky/_/h` 執行
-   `.husky/<hook名>`)是確定的
-
-**只看 `--local` 是關鍵。** 少了這個旗標會讀到我們自己那份 `includeIf` 設的
-`core.hooksPath`,每個 repo 都被誤判成「被佔住」。husky 是寫進 local config,
-所以 local 有值才代表真的被搶走。
-
-目前清單與各自成本:
-
-| repo | 索引到的檔 | init | 索引大小 | hook |
-|---|---|---|---|---|
-| 工作用的前端(React) | 7,135 | 20 秒 | 261 MB | husky 佔住 → 兩支轉接 |
-| 工作用的主後端(Python) | 2,604 | 31 秒 | 274 MB | 走共用的 |
-| 第三方服務後端 A | 332 | 3 秒 | 29 MB | 走共用的 |
-| 第三方服務後端 B | 119 | 2 秒 | 5.9 MB | 走共用的 |
-
-手動要做的話,轉接內容長這樣(腳本貼的就是這份):
-
-```sh
-# <repo>/.husky/post-checkout   ← 未追蹤,要進 .git/info/exclude
-#!/bin/sh
-h="$HOME/.config/git/hooks/$(basename "$0")"
-[ -x "$h" ] && "$h" "$@"
-exit 0
-```
-
-為什麼那四個 repo 都要:你追一個問題會跨三段程式碼 ——
-前端(request 封裝依服務型別挑 baseURL)→ 主後端的 proxy(routers 底下對應那個服務那支)
-→ 第三方服務自己的實作。
-**codegraph 不會跨 repo 連 call path**(`projectPath` 一次只吃一個索引),所以那條鏈是
-三次分開的查詢,每一層要有自己的索引:
-
-```bash
-codegraph explore <前端 symbol>
-codegraph explore <endpoint> -p ~/code/<主後端>
-codegraph explore <handler>  -p ~/code/<第三方服務後端>
-```
-
-前端 repo 裡已經有各服務 `src/services/<服務>/` 的生成 client
-(1,880 / 448 / 160 個檔,都在前端那份索引裡),所以「這個 endpoint 收什麼回什麼」查前端就有;
-ec / spc 的索引多回答的是「那個 endpoint 的實作為什麼這樣算」。它們合計只有 35 MB,留著。
-
-這兩樣都**不進版控、同事看不到**:索引目錄由全域 gitignore 擋掉;轉接檔是未追蹤檔加
-`.git/info/exclude`(那個檔 git 從不追蹤)。追蹤的檔案一個都沒碰,`git diff HEAD` 是空的。
-
-⚠️ `git clean -fdx` 會刪掉轉接檔(連 `node_modules` 一起),真的跑了就照上面重貼。
-
-**加新 repo 的時候要做什麼:** `codegraph-setup-repo ~/code/<repo>`,它會自己判斷要不要補轉接。
-
-### 完全不想動那個 repo 的話
-
-有些 repo 你不想放任何東西進去(不是你的、規範不允許、或就是不想)。那就**不要自動化**,
-需要的時候手動一行:
-
-```bash
-cd <新 worktree>
-cp -r <主 checkout>/.codegraph .codegraph && codegraph sync -q
-```
-
-約 1 秒,而且這條路連 `.git/` 都不碰。代價就是每開一個 worktree 要記得跑。
-
-⚠️ **不要走「用 `.git/config` 蓋掉 husky 的 hooksPath」那條。** 它看起來更乾淨
-(`.git/config` 也是機器本地、不進版控、不在工作區),但有兩個新的失效點:
-`npm install` 會讓 husky 把 `core.hooksPath` 設回 `.husky/_`,你的覆蓋靜默消失;
-而且覆蓋之後 husky 自己的 `pre-commit` 就不跑了,要讓它活著,共用目錄還得再補一支
-`pre-commit` 轉回 `.husky/pre-commit`。為了少一個未追蹤檔,換來兩個會靜默壞掉的地方,
-不值得。
-
-> 這份清單**會過時**,它的用途是「照著跑一遍,發現少什麼就補上」,不是權威來源。
-> 現況一律問工具本身:`npx skills@latest list -g`、`claude mcp list`、Claude 裡打 `/plugin`。
-> 這跟 [2-1](#a-別人的而且有-cli--用-npx-skills) 說的「不列清單」不衝突 ——
-> 那裡講的是「現在裝了哪些」(會一直變),這裡列的是「重建步驟」。
+Runbook 的邊界是:**chezmoi 恢復家目錄設定,各 repo 的 codegraph index 仍要逐 repo
+重建,登入狀態與秘密不搬移也不進 repo**。codegraph 的索引、worktree、hook 轉接細節
+見 [codegraph 的索引是每個專案自己的事](#codegraph-的索引是每個專案自己的事)。
 
 ---
 
@@ -745,6 +583,6 @@ cp -r <主 checkout>/.codegraph .codegraph && codegraph sync -q
 | 換過 node 版本後 codegraph 掛了 | `npm i -g @colbymchenry/codegraph` 再裝一次(npm -g 綁 node 版本) |
 | 新 worktree 要有 codegraph 索引 | 什麼都不用做,共用 `post-checkout` hook 會複製主索引(約 1 秒) |
 | 某個 repo 的共用 hook 沒生效 | `git config --get core.hooksPath` —— 有輸出就是被 husky 之類搶走了,補轉接 |
-| 換新機器要重裝什麼 | 見[換機器怎麼重建](#換機器怎麼重建) |
+| 換新機器要重裝什麼 | 見[新機器設定 Runbook](new-machine-setup.md) |
 | 更新 Claude plugin | Claude 裡打 `/plugin` |
 | 確認規則有生效 | 開新 session 打 `/context`,看 **Memory files** 那區 |

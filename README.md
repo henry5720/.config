@@ -8,7 +8,8 @@
 
 | 文件 | 什麼時候讀 |
 |---|---|
-| [`docs/ai-agent-setup.md`](docs/ai-agent-setup.md) | 想搞懂 agent 規則 / skill / MCP / plugin 各是什麼、放哪、怎麼更新。**新機器設定 AI 工具前先讀這份。** |
+| [`docs/new-machine-setup.md`](docs/new-machine-setup.md) | 新 WSL／新機器從 0 重建 dotfiles、AI agent 與各 repo 的流程；也提供可交給 coding agent 的 prompt。 |
+| [`docs/ai-agent-setup.md`](docs/ai-agent-setup.md) | 想搞懂 agent 規則 / skill / MCP / plugin 各是什麼、放哪、怎麼更新。 |
 | [`docs/chrome-devtools-mcp.md`](docs/chrome-devtools-mcp.md) | 想讓 agent 開瀏覽器,或 chrome-devtools MCP 連不上(`Target closed`)的時候。含 `chrome-mcp` 用法與為什麼不裝 Linux Chrome。 |
 | [`docs/code-server-remote.md`](docs/code-server-remote.md) | 想從 pad / 手機連自己的 code-server,卡在憑證和 secure context 的時候。列出五種做法與各自代價。 |
 | [`docs/herdr-notifications.md`](docs/herdr-notifications.md) | Herdr 在 WSL2 沒有通知音、SSH 回來後失聲,或要確認 `paplay` / WSLg PulseAudio 時。 |
@@ -32,7 +33,7 @@
 | `home/dot_config/git/` | `~/.config/git/`(`hooks/post-checkout` 為 755) | 全域 git 設定,**不動 `~/.gitconfig`**(git 兩份都讀):`ignore` 全機器忽略 `.codegraph/`;`config` 的 `includeIf gitdir:~/code/` 把那底下所有 repo 的 `core.hooksPath` 指到 `hooks/`;`hooks/post-checkout` 讓新開的 worktree 自動帶上 codegraph 索引。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
 | `home/dot_local/bin/executable_codegraph-setup-repo` | `~/.local/bin/codegraph-setup-repo`(755) | 把一個 repo 接上 codegraph:建索引,並在該 repo 自己搶走 `core.hooksPath`(husky)時補 hook 轉接。冪等,新機器跑一次就好。要處理哪些 repo 讀 `~/.config/codegraph/repos`(**repo 外**,公開 repo 不放工作用的 repo 名)。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
 | `home/dot_config/nvim/` | `~/.config/nvim/` | 只有 `lua/config/options.lua`(設 `vim.g.clipboard`:SSH 走 OSC 52,否則用 Termux 剪貼簿),**非完整 nvim 設定**,需搭配既有 LazyVim 基底。 | — |
-| `home/dot_config/opencode/` | `~/.config/opencode/` | [opencode](https://opencode.ai) 的 MCP servers 與外掛,**不含模型供應商**,clone 下來要自己 `opencode auth login`。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
+| `home/dot_config/opencode/` | `~/.config/opencode/` | [opencode](https://opencode.ai) 的 TeamSync provider template、MCP、外掛與 oh-my-opencode-slim agent preset。 | [new-machine-setup.md](docs/new-machine-setup.md) |
 | `home/dot_config/private_code-server/` | `~/.config/code-server/`(目錄 700 / 檔案 600) | code-server 設定 template,密碼由 chezmoi 帶入。 | [code-server-remote.md](docs/code-server-remote.md) |
 | `ai-agent/` | — | 兩份 think-mode 對抗式 persona,**手動貼用**,不部署。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
 | `script/ubuntu/` | — | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 | [↓](#安裝與部署) |
@@ -43,7 +44,13 @@
 
 ## 安裝與部署
 
-家目錄的設定檔由 [chezmoi](https://www.chezmoi.io) 部署,新機器兩步:
+家目錄的設定檔由 [chezmoi](https://www.chezmoi.io) 部署;新機器完整流程見下方 Runbook:
+
+### 新機器
+
+完整步驟見 [`docs/new-machine-setup.md`](docs/new-machine-setup.md)。順序是
+**WSL2 Ubuntu + sudo → chezmoi → `setup.sh` → AI agent／OmO → 各 repository setup**;
+其中 `setup.sh` 是推薦的一次性入口。
 
 > ⚠️ 這台機器如果**已經在用**(已有 `~/.zshrc`、`~/.config/opencode/` 等既有設定),
 > `chezmoi init --apply` 會**直接覆蓋且不留備份**。先自行備份想留的檔案再跑。
@@ -54,15 +61,21 @@ chezmoi init --apply henry5720
 ```
 
 會 clone 本 repo 到 `~/.local/share/chezmoi`、部署 `home/` 底下的設定檔到家目錄,
-並問一次 code-server 密碼(見[秘密](#秘密))。
+並詢問兩個秘密:code-server 密碼與 codex-lb API key(見[秘密](#秘密))。
 
 **為什麼用 snap**:apt 的套件庫沒有 chezmoi(Debian 有,Ubuntu 沒跟上),而 snap 那份是上游作者
 twpayne 本人發布的,還附帶自動升級。想釘住版本用 `sudo snap refresh --hold chezmoi`。
 
-套件安裝是另一條線,chezmoi 不管:
+套件安裝是另一條線,chezmoi 不管。新機器推薦一次跑完基底與工具:
 
 ```bash
 cd ~/.local/share/chezmoi
+bash script/ubuntu/setup.sh            # 推薦:基底 + 工具,工具選單互動
+```
+
+也可以保留分開的選項:
+
+```bash
 bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + zsh 插件 + chezmoi + 預設 shell
 bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / btop / nvm / code-server / ffmpeg
 ```
