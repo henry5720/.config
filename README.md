@@ -1,151 +1,75 @@
 # dotfiles
 
-個人開發環境設定,主要目標平台是 **WSL2 上的 Ubuntu 24.04**(shell 為純 zsh,無 Oh My Zsh),另含一組 **Termux(Android)** 的桌面環境腳本作為次要用途。
+這是個人公開 dotfiles repo,主要支援 **WSL2 上的 Ubuntu 24.04** 與純 zsh
+(不使用 Oh My Zsh),用來建立日常的 shell、終端與 coding-agent 工作環境。
+`Termux/Android` 與 `Windows` 內容是輔助資源,不等同於主要支援平台。
 
-整體圍繞一套 **AI-agent 輔助的 tmux 終端工作流**(opencode、Claude、外部 agent-tracker),疊在標準的 zsh + tmux + nvim 之上。
+## 管理什麼
 
-## 延伸文件
+- `home/`: chezmoi source,部署家目錄設定與 templates。
+- `script/ubuntu/`: Ubuntu 基底與工具安裝腳本。
+- AI agent 與 OpenCode config,包含 MCP、plugin 與 agent preset。
+- Git、tmux、Neovim，以及 WSL／Termux／Windows 的輔助資源。
 
-| 文件 | 什麼時候讀 |
-|---|---|
-| [`docs/new-machine-setup.md`](docs/new-machine-setup.md) | 新 WSL／新機器從 0 重建 dotfiles、AI agent 與各 repo 的流程；也提供可交給 coding agent 的 prompt。 |
-| [`docs/ai-agent-setup.md`](docs/ai-agent-setup.md) | 想搞懂 agent 規則 / skill / MCP / plugin 各是什麼、放哪、怎麼更新。 |
-| [`docs/chrome-devtools-mcp.md`](docs/chrome-devtools-mcp.md) | 想讓 agent 開瀏覽器,或 chrome-devtools MCP 連不上(`Target closed`)的時候。含 `chrome-mcp` 用法與為什麼不裝 Linux Chrome。 |
-| [`docs/code-server-remote.md`](docs/code-server-remote.md) | 想從 pad / 手機連自己的 code-server,卡在憑證和 secure context 的時候。列出五種做法與各自代價。 |
-| [`docs/herdr-notifications.md`](docs/herdr-notifications.md) | Herdr 在 WSL2 沒有通知音、SSH 回來後失聲,或要確認 `paplay` / WSLg PulseAudio 時。 |
-| [`docs/no-sudo-setup.md`](docs/no-sudo-setup.md) | 在別人的機器上有一個 user 但沒有 sudo(例:`nettop`),想把這份 dotfiles 套上去的時候。含 `script/ubuntu/*.sh` 為什麼在那裡跑不起來。 |
-| [`docs/tmux-workflow.md`](docs/tmux-workflow.md) | 想搞懂 tmux 的狀態列、session 管理、agent 自動化腳本各是什麼,或狀態列少了東西要查為什麼。 |
-| [`docs/superpowers/`](docs/superpowers) | zsh setup 腳本當初的設計與實作規劃(spec / plan),歷史紀錄性質。 |
+## 新機器快速開始
 
-## 目錄結構
+### 交給 coding agent
 
-`.chezmoiroot` 把 repo 切成兩塊:`home/` 是 chezmoi 的地盤(檔名有前綴規則),其餘 chezmoi 完全看不到。
+將這段貼給已可用的 Claude Code、OpenCode、Cursor 或其他 coding agent：
 
-| 路徑 | 部署到 | 用途 | 詳細 |
-|---|---|---|---|
-| `home/dot_zshrc` | `~/.zshrc` | 純 zsh:Powerlevel10k、autosuggestions、syntax-highlighting、nvm、pnpm PATH、共享歷史、開場 `fastfetch`。插件從 `~/.config/zsh/` 載入(由 `install-base.sh` clone,未 vendored),缺檔有防呆不會報錯。 | — |
-| `home/dot_tmux.conf` + `home/dot_config/tmux/` | `~/.tmux.conf` + `~/.config/tmux/` | 高度客製的 tmux:TPM 外掛、狀態列、編號 session 管理,以及大量 AI-agent 自動化腳本。 | [tmux-workflow.md](docs/tmux-workflow.md) |
-| `home/private_dot_ssh/private_config` | `~/.ssh/config`(600) | SSH 連線設定:GitHub、Tailscale 節點、Oracle VPS 兩個 tenancy、Termux(port 8022)。**不含私鑰** —— `~/.ssh/henry5720` 要自己放好並 `chmod 600`,否則所有連線失敗。 | [檔案內有逐段註解](home/private_dot_ssh/private_config) |
-| `home/dot_claude/CLAUDE.md` | `~/.claude/CLAUDE.md` | **agent 規則的單一來源**,opencode 那邊 symlink 過來。只寫「換到任何 repo 都還成立」的事。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
-| `home/modify_private_dot_claude.json` | `~/.claude.json`(600) | **就地改**,不是整份部署:只塞 Claude Code 的 `mcpServers["chrome-devtools"]`。那個檔 2200 行裡 99% 是 session 狀態與帳號資訊,不進公開 repo。 | [chrome-devtools-mcp.md](docs/chrome-devtools-mcp.md) |
-| `home/dot_claude/modify_settings.json` | `~/.claude/settings.json` | 同上,只釘一個 key:關掉官方那個在 WSL 跑不起來的 chrome-devtools plugin。 | [chrome-devtools-mcp.md](docs/chrome-devtools-mcp.md) |
-| `home/dot_local/bin/executable_chrome-mcp` | `~/.local/bin/chrome-mcp`(755) | 開 Windows 側 Chrome 的 remote debugging port 給 MCP 連;已經在跑就直接結束。 | [chrome-devtools-mcp.md](docs/chrome-devtools-mcp.md) |
-| `home/dot_config/git/` | `~/.config/git/`(`hooks/post-checkout` 為 755) | 全域 git 設定,**不動 `~/.gitconfig`**(git 兩份都讀):`ignore` 全機器忽略 `.codegraph/`;`config` 的 `includeIf gitdir:~/code/` 把那底下所有 repo 的 `core.hooksPath` 指到 `hooks/`;`hooks/post-checkout` 讓新開的 worktree 自動帶上 codegraph 索引。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
-| `home/dot_local/bin/executable_codegraph-setup-repo` | `~/.local/bin/codegraph-setup-repo`(755) | 把一個 repo 接上 codegraph:建索引,並在該 repo 自己搶走 `core.hooksPath`(husky)時補 hook 轉接。冪等,新機器跑一次就好。要處理哪些 repo 讀 `~/.config/codegraph/repos`(**repo 外**,公開 repo 不放工作用的 repo 名)。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
-| `home/dot_config/nvim/` | `~/.config/nvim/` | 只有 `lua/config/options.lua`(設 `vim.g.clipboard`:SSH 走 OSC 52,否則用 Termux 剪貼簿),**非完整 nvim 設定**,需搭配既有 LazyVim 基底。 | — |
-| `home/dot_config/opencode/` | `~/.config/opencode/` | [opencode](https://opencode.ai) 的 TeamSync provider template、MCP、外掛與 oh-my-opencode-slim agent preset。 | [new-machine-setup.md](docs/new-machine-setup.md) |
-| `home/dot_config/private_code-server/` | `~/.config/code-server/`(目錄 700 / 檔案 600) | code-server 設定 template,密碼由 chezmoi 帶入。 | [code-server-remote.md](docs/code-server-remote.md) |
-| `ai-agent/` | — | 兩份 think-mode 對抗式 persona,**手動貼用**,不部署。 | [ai-agent-setup.md](docs/ai-agent-setup.md) |
-| `script/ubuntu/` | — | Ubuntu(apt)開發環境安裝:`setup.sh`、`install-base.sh`、`install-tools.sh`。 | [↓](#安裝與部署) |
-| `script/termux/` | — | Android/Termux 桌面環境腳本,**與 WSL 無關**:`set-up-tablet.sh` 首次裝 XFCE/X11 堆疊、`startxfce_native.sh` 軟體渲染跑 XFCE、`startxfce_proot.sh` 進 proot-distro Debian 跑 XFCE。 | — |
-| `wsl/` | — | Windows 主機側檔案,**不由本 repo 腳本部署**:`.wslconfig`(記憶體 16G / swap 8G / 8 CPU / mirrored 網路,需複製到 `%UserProfile%\.wslconfig`)、`command.md`(`netsh portproxy` 備忘)。 | — |
-| `docs/` | — | 說明文件,見上方[延伸文件](#延伸文件)。 | — |
-| `CLAUDE.md` | — | 怎麼改這個 repo:檔名前綴語意、秘密怎麼加、驗證方式、註解樣式。 | [CLAUDE.md](CLAUDE.md) |
+```text
+請讀取並依序執行這份新機器設定 Runbook：
+https://raw.githubusercontent.com/henry5720/dotfiles/main/docs/new-machine-setup.md
 
-## 安裝與部署
+只執行文件列出的自動化步驟並逐步驗證；遇到 sudo、秘密、OAuth、SSH key 或可選項目時先停下來問我。
+不要讀取、儲存、列印或提交任何憑證。
+```
 
-家目錄的設定檔由 [chezmoi](https://www.chezmoi.io) 部署;新機器完整流程見下方 Runbook:
+這條路需要你已經有可用的 coding agent；它不能 bootstrap 第一個 agent。
 
-### 新機器
+### 手動設定
 
-完整步驟見 [`docs/new-machine-setup.md`](docs/new-machine-setup.md)。順序是
-**WSL2 Ubuntu + sudo → chezmoi → `setup.sh` → AI agent／OmO → 各 repository setup**;
-其中 `setup.sh` 是推薦的一次性入口。
-
-> ⚠️ 這台機器如果**已經在用**(已有 `~/.zshrc`、`~/.config/opencode/` 等既有設定),
-> `chezmoi init --apply` 會**直接覆蓋且不留備份**。先自行備份想留的檔案再跑。
+先準備 WSL2 Ubuntu 24.04 與可用的 `sudo`;已有設定的機器請先自行備份。先預覽
+chezmoi diff,確認會改哪些檔案,再套用:
 
 ```bash
 sudo snap install chezmoi --classic
-chezmoi init --apply henry5720
-```
-
-會 clone 本 repo 到 `~/.local/share/chezmoi`、部署 `home/` 底下的設定檔到家目錄,
-並詢問兩個秘密:code-server 密碼與 codex-lb API key(見[秘密](#秘密))。
-
-**為什麼用 snap**:apt 的套件庫沒有 chezmoi(Debian 有,Ubuntu 沒跟上),而 snap 那份是上游作者
-twpayne 本人發布的,還附帶自動升級。想釘住版本用 `sudo snap refresh --hold chezmoi`。
-
-套件安裝是另一條線,chezmoi 不管。新機器推薦一次跑完基底與工具:
-
-```bash
+chezmoi init henry5720
+chezmoi diff
+chezmoi apply
 cd ~/.local/share/chezmoi
-bash script/ubuntu/setup.sh            # 推薦:基底 + 工具,工具選單互動
+bash script/ubuntu/setup.sh
 ```
 
-也可以保留分開的選項:
+`setup.sh` 是推薦的一次性入口,會互動安裝 Ubuntu 基底與可選工具。完整人工步驟、
+秘密輸入、AI agent／OmO、SSH、各 repo setup 與驗證,請照
+[`docs/new-machine-setup.md`](docs/new-machine-setup.md),不要在 README 重複流程。
+如果 `chezmoi diff` 出現不認得的目標或內容,先停止並處理備份／衝突,不要直接套用。
+首次部署完成後,後續設定修改也一律先在 source repo 確認 diff 再 apply。
 
-```bash
-bash script/ubuntu/install-base.sh    # 基底(強制):zsh/git/curl/vim + zsh 插件 + chezmoi + 預設 shell
-bash script/ubuntu/install-tools.sh   # 工具(可選):編號多選 fastfetch / btop / nvm / code-server / ffmpeg
-```
+## 文件
 
-工具選單:空格分隔多選(例 `1 3`),直接 Enter = 全裝。兩者順序無所謂——`.zshrc` 對插件缺檔有防呆。
+依使用情境閱讀:
 
-`.tmux.conf` 依賴的 TPM / tmux / `jq` / `fzf` 不在上面兩支腳本的安裝範圍內,要自己裝,
-見[依賴一覽](#依賴一覽)。
+- [新機器設定](docs/new-machine-setup.md)：從 WSL 到 AI agent 與各 repo 的完整 runbook。
+- [AI agent setup](docs/ai-agent-setup.md)：規則、skill、MCP、plugin、OpenCode 與 codegraph。
+- [tmux workflow](docs/tmux-workflow.md)：tmux 狀態列、session 與 agent 自動化。
+- [Chrome DevTools MCP](docs/chrome-devtools-mcp.md)：瀏覽器 MCP、`chrome-mcp` 與排錯。
+- [code-server remote](docs/code-server-remote.md)：從其他裝置連線 code-server。
+- [no-sudo setup](docs/no-sudo-setup.md)：沒有 sudo 時的限制與替代做法。
+- [Herdr notifications](docs/herdr-notifications.md)：WSL2 通知音與 PulseAudio 排錯。
 
-### chezmoi 怎麼用
+`docs/superpowers/` 是歷史 spec／plan,不是目前環境的主要現況文件。
 
-常用的就這些:
+## 安全與 fork
 
-| 想做的事 | 指令 |
-|---|---|
-| 改某個設定檔 | `chezmoi edit --apply ~/.zshrc` |
-| 看有什麼還沒套用 | `chezmoi diff` |
-| 套用 | `chezmoi apply` |
-| 把本機的手動修改收回 repo | `chezmoi re-add` |
-| 進 source dir(commit / push 在這裡做) | `chezmoi cd` |
-| 別台改過、這台要同步 | `chezmoi update`(= pull + apply) |
-| 改密碼之類的秘密 | `chezmoi edit-config` 後 `chezmoi apply` |
+這是公開 repo。OAuth、API key、password、SSH private key 與其他憑證都不進 git;
+chezmoi 的秘密放在 repo 外,SSH private key 也必須自行配置。fork 時請換成自己的
+SSH 設定、OpenCode provider、agent rules,以及 Windows／Termux 的機器特定值。
+秘密與新機器邊界見 [新機器設定](docs/new-machine-setup.md),repo 修改規範見
+[`CLAUDE.md`](CLAUDE.md)。
 
-再細的就交給官方文件:[Daily operations](https://www.chezmoi.io/user-guide/daily-operations/)(完整指令)、
-[Target types](https://www.chezmoi.io/reference/target-types/)(`home/` 的檔名前綴 `dot_` /
-`private_` / `executable_` / `symlink_`)、
-[Templating](https://www.chezmoi.io/user-guide/templating/)(`.tmpl` 的 Go template 寫法)。
+## 修改這個 repo
 
-只有兩件事是這個 repo / 這個環境特有的,官方文件不會寫:
-
-> ⚠️ **改設定一律走 chezmoi**。直接編輯 `~/.zshrc` 這種已部署的檔案**不會回到 repo**,
-> 下次 `chezmoi apply` 還會被蓋掉。要嘛 `chezmoi edit --apply ~/.zshrc`,要嘛改完立刻
-> `chezmoi re-add`。改完在 `chezmoi cd` 裡 commit + push,其他機器 `chezmoi update` 收。
-> 這是從 symlink 換成 chezmoi 之後唯一真正要改的習慣。
-
-> 在**已經是 zsh** 的終端機裡剛裝完 snap、打 `chezmoi` 找不到?正常的,不是失敗。
-> `/snap/bin` 是由部署下來的 `.zshrc` 加進 PATH 的(Ubuntu 的 `/etc/zsh/zprofile` 不 source
-> `/etc/profile`,所以 snapd 自己那條加不到 zsh),開一個新終端機就行。全新機器不會遇到——
-> 那時還在 bash,`/snap/bin` 本來就在 PATH 裡。
-
-### 秘密
-
-repo 是公開的,秘密一律不進 git。目前只有一個:code-server 密碼 —— `chezmoi init` 時問一次,
-存在 `~/.config/chezmoi/chezmoi.toml`(**不在 repo**),以 `{{ .codeServerPassword }}` 帶進
-code-server 的 template。
-
-事後改密碼、想換成 argon2 hash,見
-[`docs/code-server-remote.md`](docs/code-server-remote.md#密碼放哪)。
-
-## 要改這個 repo
-
-檔名前綴的語意、秘密怎麼加、註解樣式、驗證方式,全在 [`CLAUDE.md`](CLAUDE.md) —— 給 agent 看的,
-人要改也照那份。
-
-## 依賴一覽
-
-- **平台**:WSL2(Windows)+ Ubuntu 24.04 為主;xfce/tablet 腳本需 Termux(Android)。
-- **dotfile 部署**:chezmoi(snap,由 `install-base.sh` 安裝)。snap 需要 systemd,Ubuntu 24.04 的 WSL 映像預設已開。
-- **shell**:zsh、Powerlevel10k、autosuggestions、syntax-highlighting(裝在 `~/.config/zsh/`)。
-- **tmux**:tmux、TPM、`tmux-resurrect`/`continuum`、`fzf`、`jq`、Python 3,以及私有 `agent-tracker`(未附)。
-- **編輯器**:Neovim + 既有 LazyVim 基底。
-- **AI 工具**:Node/nvm、`opencode` CLI、MCP servers(經 `npx`);Herdr 通知音另需 APT 套件 `pulseaudio-utils`。
-- **可選工具**:`fastfetch`、`btop`、`code-server`、`ffmpeg`(由 `install-tools.sh` 安裝)。
-
-## ⚠️ 機器特定 / fork 前需自行修改
-
-1. `script/termux/startxfce_proot.sh` **寫死使用者名稱 `henry`**(`su - henry`)。
-2. tmux 的 agent 整合依賴**未附的私有 binary** `~/.config/agent-tracker/bin/agent` 及其 `~/.config/agent-tracker/`、`~/.cache/agent/` 狀態檔;缺了功能降級但不致命。
-3. `home/dot_config/opencode/private_opencode.json.tmpl` 含 henry 使用的自訂 provider;fork 後要換
-   base URL,並在 `chezmoi init` 輸入自己的 API key。
-4. `home/dot_claude/CLAUDE.md` 是 henry 的**個人回覆偏好**(繁中、白話),fork 前請整份換掉。
-5. `home/private_dot_ssh/private_config` 內的 Host 與 `IdentityFile` 是 henry 的,fork 後整份替換。
-6. `wsl/` 內含範例 IP,且需手動複製到 Windows 端。
+`home/` 是 chezmoi source;修改規則與驗證方式看 [`CLAUDE.md`](CLAUDE.md),不要直接改
+已部署的 `$HOME` 檔案。
