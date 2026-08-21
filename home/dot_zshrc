@@ -22,6 +22,11 @@ export PATH="$PNPM_HOME:$PATH"
 export PATH="$HOME/.opencode/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
+# 啟用 OpenCode 背景 subagents
+export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true
+# 啟用 Exa 搜尋
+export OPENCODE_ENABLE_EXA=1
+
 # snap 的指令(chezmoi 走 snap)。snapd 是靠 /etc/profile.d/apps-bin-path.sh 加這條,
 # 但 Ubuntu 的 /etc/zsh/zprofile 不 source /etc/profile,所以 zsh 拿不到,得自己加。
 # 用 append:同名工具讓上面那些使用者自己裝的版本優先,不被 snap 蓋掉。

@@ -1,0 +1,93 @@
+{
+  "$schema": "https://unpkg.com/oh-my-opencode-slim@latest/oh-my-opencode-slim.schema.json",
+  "preset": "teamsync",
+  "presets": {
+    "teamsync": {
+      "orchestrator": {
+        "model": "codex-lb-gcp/gpt-5.6-terra",
+        "variant": "high",
+        "skills": [
+          "*"
+        ],
+        "mcps": [
+          "*",
+          "!context7"
+        ]
+      },
+      "oracle": {
+        "model": "codex-lb-gcp/gpt-5.6-sol",
+        "variant": "high",
+        "skills": [
+          "simplify"
+        ],
+        "mcps": []
+      },
+      "council": {
+        "model": "codex-lb-gcp/gpt-5.6-sol",
+        "variant": "high",
+        "skills": [],
+        "mcps": []
+      },
+      "explorer": {
+        "model": "codex-lb-gcp/gpt-5.6-luna",
+        "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "librarian": {
+        "model": "codex-lb-gcp/gpt-5.6-luna",
+        "variant": "low",
+        "skills": [],
+        "mcps": [
+          "context7",
+          "gh_grep"
+        ]
+      },
+      "designer": {
+        "model": "codex-lb-gcp/gpt-5.6-luna",
+        "variant": "medium",
+        "skills": [],
+        "mcps": []
+      },
+      "fixer": {
+        "model": "codex-lb-gcp/gpt-5.6-luna",
+        "variant": "high",
+        "skills": [],
+        "mcps": []
+      }
+    }
+  },
+  "council": {
+    "default_preset": "teamsync",
+    "presets": {
+      "teamsync": {
+        "terra": {
+          "model": "codex-lb-gcp/gpt-5.6-terra",
+          "variant": "high"
+        },
+        "sol": {
+          "model": "codex-lb-gcp/gpt-5.6-sol",
+          "variant": "high"
+        },
+        "luna": {
+          "model": "codex-lb-gcp/gpt-5.6-luna",
+          "variant": "high"
+        }
+      }
+    }
+  },
+  "acpAgents": {
+    "claude-code": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@agentclientprotocol/claude-agent-acp"
+      ],
+      "description": "Claude Code subscription agent for complex implementation, code review, and independent second opinions",
+      "orchestratorPrompt": "@claude-code\n- Role: Claude Code subscription specialist for complex implementation, difficult code review, and independent second opinions\n- Delegate when: a task benefits from Claude's coding judgment, an independent review, or a second implementation perspective\n- Don't delegate when: a fast repository lookup or simple bounded edit is enough",
+      "wrapperModel": "codex-lb-gcp/gpt-5.6-luna",
+      "permissionMode": "ask",
+      "timeoutMs": 0
+    }
+  }
+}

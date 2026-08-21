@@ -584,6 +584,35 @@ npx skills@latest add JuliusBrussee/caveman -g -y -s caveman -a '*'   # 只要�
 #   chrome-devtools-mcp.md
 ```
 
+## oh-my-opencode-slim + Claude Code ACP
+
+換新機器時,先部署 chezmoi 管理的 OpenCode core config 與
+oh-my-opencode-slim agent preset,再執行 OmO installer:
+
+```bash
+chezmoi init --apply henry5720
+npx --yes oh-my-opencode-slim@latest install --no-tui --skills=yes --background-subagents=no --companion=no
+source ~/.zshrc
+claude auth status
+# 上一行顯示尚未登入時才執行:
+claude auth login
+```
+
+installer 偵測到已部署的 config 時會保留 config;這裡使用它是為了安裝／同步
+bundled skills,不是讓它覆蓋 chezmoi 的設定。Claude Code ACP 的 `npx` adapter 由
+config 按需啟動,不需要 `npm i -g @agentclientprotocol/claude-agent-acp`。
+
+Claude OAuth 登入狀態只存在這台機器,不能搬移,也不能放進 repo。完成登入後,開啟
+`opencode`,輸入 `ping all agents` 驗證;也可以用 `@claude-code` 做一個短測試。
+
+Herdr 是選配,不在跨機器必要設定內。只有想要 live pane 時才自行安裝 Herdr,再執行:
+
+```bash
+herdr integration install opencode
+```
+
+這不影響 OmO 的 background agents。
+
 自己寫的 skill 在 `~/code/work-helper/`,那是另一個 repo,clone 下來再照
 [2-1 B](#b-自己寫的或只有-git-repo-沒有-cli--clone-完拉-symlink) 拉 symlink。
 
