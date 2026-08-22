@@ -6,7 +6,8 @@ DRY_RUN="${DRY_RUN:-0}"
 INPUT_SRC="${INPUT_SRC:-/dev/tty}"   # 正式走 tty;測試可覆寫為 /dev/stdin
 
 # 工具清單:編號順序即顯示順序
-TOOLS=(fastfetch btop nvm code-server ffmpeg)
+TOOLS=(fastfetch btop nvm code-server ffmpeg document-media)
+TOOL_LABELS=(fastfetch btop nvm code-server ffmpeg '文件／媒體解析')
 
 install_fastfetch() {
   command -v fastfetch &>/dev/null && { echo -e "${BLUE}✅ fastfetch 已安裝。${NC}"; return; }
@@ -65,10 +66,31 @@ install_ffmpeg() {
   sudo apt install -y ffmpeg
 }
 
+install_document_media() {
+  local packages=(mupdf-tools pandoc python3-venv)
+  local missing=()
+  local package
+
+  for package in "${packages[@]}"; do
+    if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q 'install ok installed'; then
+      missing+=("$package")
+    fi
+  done
+
+  if [ "${#missing[@]}" -eq 0 ]; then
+    echo -e "${BLUE}✅ 文件／媒體解析依賴已安裝。${NC}"
+    return
+  fi
+
+  echo -e "${GREEN}📦 安裝文件／媒體解析依賴 (apt):${missing[*]}...${NC}"
+  sudo apt update
+  sudo apt install -y "${missing[@]}"
+}
+
 # 顯示選單並讀取選擇
 echo "請選擇要安裝的工具 (空格分隔多選,直接 Enter = 全裝):"
 for i in "${!TOOLS[@]}"; do
-  printf "  %d) %s\n" "$((i+1))" "${TOOLS[$i]}"
+  printf "  %d) %s\n" "$((i+1))" "${TOOL_LABELS[$i]}"
 done
 printf "> "
 picks=()

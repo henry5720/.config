@@ -73,6 +73,13 @@ bash script/ubuntu/setup.sh
 可改跑 `bash script/ubuntu/install-base.sh` 與 `bash script/ubuntu/install-tools.sh`,
 詳見 [README 安裝與部署](../README.md#安裝與部署)。
 
+若要讓 OpenCode 的 `local-artifact-intake` 在新機上具備基本 PDF／Office 解析能力,執行
+`bash script/ubuntu/install-tools.sh`,在選單選第 6 項「文件／媒體解析」。它只安裝
+`mupdf-tools`、`pandoc`、`python3-venv`;影音解析請另外選既有的 `ffmpeg`(第 5 項)。
+這個選項刻意不預裝 LibreOffice,因為基本文字／OOXML 解析不需要完整辦公室套件;也不預裝
+OCR 或 STT,因為它們通常需要較大的 native 依賴、模型與額外資源,只在確實需要時再按用途
+安裝。Python data packages 也不隨這個最小選項帶入。
+
 ### 4. 重新載入 zsh
 
 安裝完成後執行:

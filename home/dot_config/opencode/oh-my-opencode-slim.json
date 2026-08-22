@@ -83,8 +83,8 @@
         "-y",
         "@agentclientprotocol/claude-agent-acp"
       ],
-      "description": "Claude Code subscription agent for complex implementation, code review, and independent second opinions",
-      "orchestratorPrompt": "@claude-code\n- Role: Claude Code subscription specialist for complex implementation, difficult code review, and independent second opinions\n- Delegate when: a task benefits from Claude's coding judgment, an independent review, or a second implementation perspective\n- Don't delegate when: a fast repository lookup or simple bounded edit is enough",
+      "description": "Claude Code agent；僅在使用者明確要求 Claude，或主 agent 已先嘗試本機工具並記錄具體 blocker 時才可 delegate。不得因方便、速度、例行工作或第二意見委派。",
+      "orchestratorPrompt": "@claude-code\n- Role: Claude Code agent，只有在明確通過 delegation gate 後才可使用。\n- Gate: 僅在使用者明確要求 Claude，或主 agent 已先嘗試相關本機工具並記錄具體 blocker 時 delegate。\n- Artifact gate: 遇到 PDF、DOCX、PPTX、XLSX、CSV、audio 或 video，先載入 local-artifact-intake，由主 agent 用 OpenCode read/bash 和本機工具完成 preflight；在 local preflight 明確阻塞前不得 delegate。\n- Never delegate for convenience, speed, routine work, or a second opinion；不要導向 Codex CLI，也不要預設 Claude。\n- Before delegation: 列出已嘗試的命令與具體阻塞原因，經 permission gate 後只傳最小必要資料。",
       "wrapperModel": "codex-lb-gcp/gpt-5.6-luna",
       "permissionMode": "ask",
       "timeoutMs": 0
