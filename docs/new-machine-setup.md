@@ -73,12 +73,26 @@ bash script/ubuntu/setup.sh
 可改跑 `bash script/ubuntu/install-base.sh` 與 `bash script/ubuntu/install-tools.sh`,
 詳見 [README 安裝與部署](../README.md#安裝與部署)。
 
-若要讓 OpenCode 的 `local-artifact-intake` 在新機上具備基本 PDF／Office 解析能力,執行
-`bash script/ubuntu/install-tools.sh`,在選單選第 6 項「文件／媒體解析」。它只安裝
-`mupdf-tools`、`pandoc`、`python3-venv`;影音解析請另外選既有的 `ffmpeg`(第 5 項)。
-這個選項刻意不預裝 LibreOffice,因為基本文字／OOXML 解析不需要完整辦公室套件;也不預裝
-OCR 或 STT,因為它們通常需要較大的 native 依賴、模型與額外資源,只在確實需要時再按用途
-安裝。Python data packages 也不隨這個最小選項帶入。
+若要讓 OpenCode 的 `local-artifact-intake` 在新機上具備基本 PDF／Office／影音解析能力,執行
+`bash script/ubuntu/install-tools.sh`,在選單選第 5 項「文件／媒體解析」。這個選項是
+`ffmpeg`、`mupdf-tools`、`pandoc` 的唯一管理者,並提供 Python venv 所需的 `python3-venv`;
+不預裝 LibreOffice、OCR、STT 或 Python AI packages。
+
+若確實需要可選的 AI 文件／媒體解析,在同一個選單另選第 6 項「AI 文件／媒體解析」。它會在
+`~/.local/share/ai-document-media/venv` 建立獨立 Python venv,只安裝 `docling` 與
+`faster-whisper`。也可在執行前設定 `AI_DOCUMENT_MEDIA_BACKEND=uv` 改用已自行安裝的 uv
+建立 venv;沒有 uv 時安裝器會停止,不會替你下載 uv。`AI_DOCUMENT_MEDIA_INSTALL_TIKA=1`
+只是額外安裝 optional 的 Python `tika` client,不會準備 Tika server JAR。
+
+這個選項不會下載或初始化 Docling／faster-whisper model。使用前由人手把 model 放在本機,
+以 `WHISPER_MODEL_DIR` 等 local path 指定,並讓 skill 以 offline mode 執行;沒有本機 model
+就回報 blocker,不可讓工具連網下載。Tika 只有在 `TIKA_SERVER_JAR` 指向已存在的本機 JAR
+時才可作 fallback。安裝完成後可用下面指令確認 venv 與 package,這些 probe 不會寫入檔案:
+
+```bash
+AI_DOCUMENT_MEDIA_VENV="${AI_DOCUMENT_MEDIA_VENV:-$HOME/.local/share/ai-document-media/venv}"
+"$AI_DOCUMENT_MEDIA_VENV/bin/python" -c 'import docling, faster_whisper'
+```
 
 ### 4. 重新載入 zsh
 

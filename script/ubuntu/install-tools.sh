@@ -6,8 +6,8 @@ DRY_RUN="${DRY_RUN:-0}"
 INPUT_SRC="${INPUT_SRC:-/dev/tty}"   # 正式走 tty;測試可覆寫為 /dev/stdin
 
 # 工具清單:編號順序即顯示順序
-TOOLS=(fastfetch btop nvm code-server ffmpeg document-media)
-TOOL_LABELS=(fastfetch btop nvm code-server ffmpeg '文件／媒體解析')
+TOOLS=(fastfetch btop nvm code-server document-media ai-document-media)
+TOOL_LABELS=(fastfetch btop nvm code-server '文件／媒體解析' 'AI 文件／媒體解析')
 
 install_fastfetch() {
   command -v fastfetch &>/dev/null && { echo -e "${BLUE}✅ fastfetch 已安裝。${NC}"; return; }
@@ -59,15 +59,8 @@ install_code_server() {
 EOF
 }
 
-install_ffmpeg() {
-  command -v ffmpeg &>/dev/null && { echo -e "${BLUE}✅ ffmpeg 已安裝。${NC}"; return; }
-  echo -e "${GREEN}📦 安裝 ffmpeg (apt)...${NC}"
-  sudo apt update
-  sudo apt install -y ffmpeg
-}
-
 install_document_media() {
-  local packages=(mupdf-tools pandoc python3-venv)
+  local packages=(ffmpeg mupdf-tools pandoc python3-venv)
   local missing=()
   local package
 
@@ -78,13 +71,83 @@ install_document_media() {
   done
 
   if [ "${#missing[@]}" -eq 0 ]; then
-    echo -e "${BLUE}✅ 文件／媒體解析依賴已安裝。${NC}"
+    echo -e "${BLUE}✅ 文件／媒體解析依賴(ffmpeg、MuPDF、Pandoc、Python venv)已安裝。${NC}"
     return
   fi
 
-  echo -e "${GREEN}📦 安裝文件／媒體解析依賴 (apt):${missing[*]}...${NC}"
+  echo -e "${GREEN}📦 安裝文件／媒體解析依賴 (apt): ${missing[*]}...${NC}"
   sudo apt update
   sudo apt install -y "${missing[@]}"
+}
+
+install_ai_document_media() {
+  local backend="${AI_DOCUMENT_MEDIA_BACKEND:-venv}"
+  local data_dir="${AI_DOCUMENT_MEDIA_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/ai-document-media}"
+  local venv_dir="${AI_DOCUMENT_MEDIA_VENV:-$data_dir/venv}"
+  local python
+  local packages=()
+  local tika_label=''
+
+  case "$backend" in
+    venv)
+      command -v python3 &>/dev/null || {
+        echo -e "${BLUE}⚠️ 找不到 python3;請先安裝 Ubuntu Python。${NC}" >&2
+        return 1
+      }
+      if ! python3 -c 'import venv' &>/dev/null; then
+        echo -e "${GREEN}📦 安裝 Python venv 支援 (apt)...${NC}"
+        sudo apt update
+        sudo apt install -y python3-venv
+      fi
+      if [ ! -x "$venv_dir/bin/python" ]; then
+        echo -e "${GREEN}📦 建立 AI 文件／媒體解析 Python venv: $venv_dir${NC}"
+        mkdir -p "$data_dir"
+        python3 -m venv "$venv_dir"
+      fi
+      python="$venv_dir/bin/python"
+      ;;
+    uv)
+      command -v uv &>/dev/null || {
+        echo -e "${BLUE}⚠️ AI_DOCUMENT_MEDIA_BACKEND=uv 但找不到 uv;請先自行安裝 uv。${NC}" >&2
+        return 1
+      }
+      if [ ! -x "$venv_dir/bin/python" ]; then
+        echo -e "${GREEN}📦 用 uv 建立 AI 文件／媒體解析 venv: $venv_dir${NC}"
+        mkdir -p "$data_dir"
+        uv venv --python python3 "$venv_dir"
+      fi
+      python="$venv_dir/bin/python"
+      ;;
+    *)
+      echo -e "${BLUE}⚠️ AI_DOCUMENT_MEDIA_BACKEND 只能是 venv 或 uv。${NC}" >&2
+      return 1
+      ;;
+  esac
+
+  "$python" -c 'import docling' &>/dev/null || packages+=(docling)
+  "$python" -c 'import faster_whisper' &>/dev/null || packages+=(faster-whisper)
+  if [ "${AI_DOCUMENT_MEDIA_INSTALL_TIKA:-0}" = "1" ]; then
+    "$python" -c 'import tika' &>/dev/null || packages+=(tika)
+    tika_label='、可選 Tika'
+  fi
+
+  if [ "${#packages[@]}" -eq 0 ]; then
+    echo -e "${BLUE}✅ AI 文件／媒體解析 Python 套件已安裝。${NC}"
+  elif [ "$backend" = "uv" ]; then
+    echo -e "${GREEN}📦 用 uv 安裝 Python 套件: ${packages[*]}...${NC}"
+    uv pip install --python "$python" "${packages[@]}"
+  else
+    echo -e "${GREEN}📦 用 venv 安裝 Python 套件: ${packages[*]}...${NC}"
+    "$python" -m pip install "${packages[@]}"
+  fi
+
+  cat <<EOF
+
+  AI 解析環境: $venv_dir
+  已管理: Docling、faster-whisper${tika_label}
+  安裝器不會下載或初始化任何 AI model。首次使用前，請自行準備本機 model 並以本機路徑指定;
+  未準備 model 時，skill 應回報 blocker，不得讓工具連網下載。
+EOF
 }
 
 # 顯示選單並讀取選擇
