@@ -12,9 +12,21 @@ TOOL_LABELS=(fastfetch btop nvm code-server '文件／媒體解析' 'AI 文件�
 install_fastfetch() {
   command -v fastfetch &>/dev/null && { echo -e "${BLUE}✅ fastfetch 已安裝。${NC}"; return; }
   echo -e "${GREEN}📦 安裝 fastfetch (GitHub .deb)...${NC}"
-  local url deb
+  local dpkg_arch asset url deb
+  # 檔名用 aarch64/armv7l,包裡的 Architecture 卻是 arm64/armhf,兩套名字要對照
+  dpkg_arch=$(dpkg --print-architecture)
+  case "$dpkg_arch" in
+    amd64) asset=amd64 ;;
+    arm64) asset=aarch64 ;;
+    armhf) asset=armv7l ;;
+    *)
+      echo -e "${BLUE}⚠️ fastfetch 沒有 ${dpkg_arch} 的 .deb,跳過。${NC}"
+      return 0
+      ;;
+  esac
+  # 結尾釘死 \.deb,否則會抓到同名的 -polyfilled 變體
   url=$(curl -fsSL https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest \
-        | grep -o 'https://[^"]*/fastfetch-linux-amd64\.deb' | head -1)
+        | grep -o "https://[^\"]*/fastfetch-linux-${asset}\\.deb" | head -1)
   if [ -z "$url" ]; then
     echo -e "${BLUE}⚠️ 找不到 fastfetch 的 .deb 連結(GitHub API 限流或資產改名?),跳過。${NC}"
     return 0
@@ -23,6 +35,11 @@ install_fastfetch() {
   curl -fsSL "$url" -o "$deb"
   sudo dpkg -i "$deb" || sudo apt install -f -y
   rm -f "$deb"
+  # apt install -f 只補得了缺依賴,架構不符照樣回 0,所以要自己確認真的裝上了
+  command -v fastfetch &>/dev/null || {
+    echo -e "${BLUE}⚠️ fastfetch 安裝失敗。${NC}" >&2
+    return 1
+  }
 }
 
 install_btop() {
