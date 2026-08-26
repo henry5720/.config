@@ -67,9 +67,8 @@ Host phone
 # A1 額度(2 OCPU / 12 GB)全開給下面這一台。E2.1.Micro 額度(上限 2 台)是空的。
 
 # Console display name:a1-2c12g。A1 Flex,2 OCPU / 12 GB,AD-2 / FD-1。
-# 跑著 keepalive(~/bin/oci-keepalive.sh,crontab @reboot 起)防閒置回收。
-# 週期是燒 6s / 睡 4s ≈ 整機 31% CPU:這台 2 核,腳本預設的 3/7 只有 15%,
-# 低於 20% 門檻等於沒裝(sha256sum 單執行緒,燒滿也只佔整機一半)。
+# 跑著 keepalive(~/bin/oci-keepalive.sh,crontab @reboot 起)防閒置回收,
+# oracle-toolkit 的預設週期 3s/7s,實測整機 31% CPU(判定門檻是 20%)。
 Host henry-a1
     HostName 129.80.13.225
     User ubuntu
