@@ -56,29 +56,22 @@ Host phone
 # ===============================================================
 # 4. Oracle VPS — tenancy A (我的)
 # ===============================================================
-# 底下這兩節是兩個不同的 Oracle 帳號(tenancy),各自有一份獨立的 Always Free
-# 額度,分開算。Host 名一律用 OCI Console 上的 display name,免得再搞混。
+# 這節和第 5 節是兩個不同的 Oracle 帳號(tenancy),各自有一份獨立的 Always Free
+# 額度,分開算。Host 名不一定等於 OCI Console 上的 display name,每台在自己那段
+# 註解標出 Console 上叫什麼,免得再搞混。
 # 判斷某台屬於哪個帳號,登進去跑:
 #   curl -sH "Authorization: Bearer Oracle" \
 #     http://169.254.169.254/opc/v2/instance/ | jq -r .compartmentId
 #   tenancy A = ...z3lry3...   tenancy B = ...7yh5zf...
 #
-# 兩台都是 E2.1.Micro 1 OCPU / 1 GB。Always Free 的 micro 上限就是 2 台,已用滿。
-# A1 額度(2 OCPU / 12 GB)在這個帳號還全空。
+# A1 額度(2 OCPU / 12 GB)全開給下面這一台。E2.1.Micro 額度(上限 2 台)是空的。
 
-# 搶 A1 的 cron 跑在這台(~/oracle-toolkit,每 10 分鐘一次,log 在 ~/grab-a1.log)。
-# openclaw gateway 已停用(systemctl --user disable --now openclaw-gateway),
-# 要復原就 enable --now。nginx(:80/:443)還開著,但後端已經沒在跑。
-Host instance-1
-    HostName 132.145.162.28
-    User ubuntu
-    IdentityFile ~/.ssh/henry5720
-
-# 閒置。原本要拿來搶 A1,後來改跑在 instance-1,這台的 ~/.oci 與 ~/oracle-toolkit
-# 已移除。留著是因為關掉也不會多出 A1 額度,只會多 47 GB 硬碟。
-# 原本叫 oracle-1。
-Host instance-2
-    HostName 150.136.80.76
+# Console display name:a1-2c12g。A1 Flex,2 OCPU / 12 GB,AD-2 / FD-1。
+# 跑著 keepalive(~/bin/oci-keepalive.sh,crontab @reboot 起)防閒置回收。
+# 週期是燒 6s / 睡 4s ≈ 整機 31% CPU:這台 2 核,腳本預設的 3/7 只有 15%,
+# 低於 20% 門檻等於沒裝(sha256sum 單執行緒,燒滿也只佔整機一半)。
+Host henry-a1
+    HostName 129.80.13.225
     User ubuntu
     IdentityFile ~/.ssh/henry5720
 
