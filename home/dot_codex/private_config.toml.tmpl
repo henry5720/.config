@@ -1,17 +1,19 @@
 # ============================================================
 # codex-lb - 公司自架的 codex 負載平衡器 (GCP asia-east1-b)
-# 這是**預設** provider —— 官方那條需要 ChatGPT 帳號登入,這台沒有。
-# 要它多用力想時才加: codex --profile codex-gcp
-# API key 由 chezmoi 的 promptStringOnce 提供,不會進公開 repo。
+# 這是**預設** provider。API key 由 chezmoi 的 promptStringOnce 提供,不會進公開 repo。
+#
+# profile = $CODEX_HOME/<名字>.config.toml,疊在這份之上:
+#   codex                → 這份,公司 lb + medium
+#   codex -p codex-gcp   → 公司 lb + xhigh
+#   codex -p personal    → 個人 ChatGPT 帳號(憑證在 ~/.codex/auth.json,不由 chezmoi 管)
 # ============================================================
 
-# 預設就走 codex-lb。少了這兩行,不加 --profile 時會退回官方 openai provider,
-# 而那條在這台沒有憑證 —— 沒有 ChatGPT 帳號,已 codex logout,~/.codex/auth.json 不存在。
-model = "gpt-5.6-sol"
+# 預設就走 codex-lb。少了這兩行,不加 --profile 時會退回官方 openai provider。
+model = "gpt-6-astra"
 model_provider = "codex-lb-gcp"
 
 # 不寫的話 codex 不帶這個參數(TUI 顯示 "none"),強度由後端自己決定、看不出來。
-# medium 是日常寫程式的平衡點;難題用 --profile codex-gcp 上 xhigh。
+# medium 是日常寫程式的平衡點;難題用 -p codex-gcp 上 xhigh。
 model_reasoning_effort = "medium"
 
 [model_providers.codex-lb-gcp]
@@ -38,8 +40,23 @@ trust_level = "trusted"
 [projects."/home/henry/.local/share/chezmoi"]
 trust_level = "trusted"
 
+[projects."/home/henry/code/work-agent-deploy"]
+trust_level = "trusted"
+
+[projects."/tmp/opencode"]
+trust_level = "trusted"
+
+[projects."/home/henry/code/henry5720"]
+trust_level = "trusted"
+
 [tui.model_availability_nux]
-"gpt-5.6-sol" = 2
+"gpt-5.6-sol" = 4
+gpt-6-astra = 1
 
 [features]
 hooks = true
+
+[hooks.state]
+
+[hooks.state."/home/henry/.codex/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:8aca2b29e645d25e13f7128bb2a3115ec42b452c4912f9d14cfa9201db4f4c56"
